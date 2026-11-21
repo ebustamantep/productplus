@@ -75,8 +75,15 @@ dol_include_once('/productplus/lib/productplus.lib.php');
 
 $langs->loadLangs(array('products', 'stocks', 'suppliers', 'categories', 'bills', 'errors', 'productplus@productplus'));
 
-// Admins only
-if (!$user->admin) {
+// Permission of the module, plus the native right to read products or services
+$readabletypes = array();
+if (isModEnabled('product') && $user->hasRight('produit', 'lire')) {
+	$readabletypes[] = Product::TYPE_PRODUCT;
+}
+if (isModEnabled('service') && $user->hasRight('service', 'lire')) {
+	$readabletypes[] = Product::TYPE_SERVICE;
+}
+if (!$user->hasRight('productplus', 'use') || !count($readabletypes)) {
 	accessforbidden();
 }
 if (!isModEnabled('productplus') || (!isModEnabled('product') && !isModEnabled('service'))) {
@@ -106,7 +113,25 @@ if ($id > 0) {
 	}
 	// Entity check of the native product card
 	restrictedArea($user, 'produit|service', $object->id, 'product&product', '', '', 'rowid');
+	if (!in_array((int) $object->type, $readabletypes)) {
+		accessforbidden();
+	}
 }
+
+// Same rights as the native pages of the product (card, prices, supplier prices, stock)
+$isservice = ((int) $object->type == Product::TYPE_SERVICE);
+$advperms = getDolGlobalString('MAIN_USE_ADVANCED_PERMS');
+$usercancreate = ($isservice ? $user->hasRight('service', 'creer') : $user->hasRight('produit', 'creer'));
+$usercanreadprice = ($advperms ? $user->hasRight($isservice ? 'service' : 'product', $isservice ? 'service_advance' : 'product_advance', 'read_prices') : true);
+$usercanreadsupplierprice = ($advperms ? $user->hasRight($isservice ? 'service' : 'product', $isservice ? 'service_advance' : 'product_advance', 'read_supplier_prices') : true);
+$usercanreadsupplierprice = ($usercanreadsupplierprice && ($user->hasRight('fournisseur', 'lire') || (isModEnabled('margin') && $user->hasRight('margin', 'liretous'))));
+$usercanwritesupplierprice = ($advperms ? $user->hasRight('product', 'product_advance', 'write_supplier_prices') : $usercancreate);
+$usercancreatecategory = $user->hasRight('categorie', 'creer');
+$usercanreadstock = $user->hasRight('stock', 'lire');
+$usercanupdatestock = $user->hasRight('stock', 'mouvement', 'creer');
+$usesuppliers = ($usesuppliers && $usercanreadsupplierprice);
+$usestock = ($usestock && $usercanreadstock);
+$usecategories = ($usecategories && $user->hasRight('categorie', 'lire'));
 
 $hookmanager->initHooks(array('productplusficha', 'globalcard'));
 
@@ -134,7 +159,7 @@ if (preg_match('/^(set|add)/', $action) && (empty($_SERVER['REQUEST_METHOD']) ||
 
 $searchresult = null;
 if (empty($reshook) && $search !== '' && $action == '') {
-	$searchresult = productplus_search_products($db, $search, 100);
+	$searchresult = productplus_search_products($db, $search, 100, $readabletypes);
 	if (count($searchresult['rows']) == 1 && !$searchresult['more']) {
 		header('Location: '.$_SERVER['PHP_SELF'].'?id='.((int) $searchresult['rows'][0]->rowid));
 		exit;
@@ -142,6 +167,17 @@ if (empty($reshook) && $search !== '' && $action == '') {
 }
 
 // Fields saved with Product::update(): ref, label, barcode, description, cost price
+// An action or an edit form without the native right is refused
+$needright = array(
+	'ref' => $usercancreate, 'label' => $usercancreate, 'barcode' => $usercancreate, 'desc' => $usercancreate,
+	'categories' => $usercancreate, 'price' => $usercancreate && $usercanreadprice,
+	'costprice' => $usercancreate && $usercanreadsupplierprice,
+	'supplierprice' => $usercanwritesupplierprice && $usesuppliers, 'stock' => $usercanupdatestock && $usestock,
+);
+if ($object->id > 0 && preg_match('/^(set|edit|add|create)(.+)$/', $action, $reg) && isset($needright[$reg[2]]) && !$needright[$reg[2]]) {
+	accessforbidden();
+}
+
 if (empty($reshook) && $object->id > 0 && in_array($action, array('setref', 'setlabel', 'setbarcode', 'setdesc', 'setcostprice'))) {
 	$error = 0;
 	$object->oldcopy = dol_clone($object, 1);  // @phan-suppress-current-line PhanTypeMismatchProperty
@@ -236,7 +272,10 @@ if (empty($reshook) && $object->id > 0 && $action == 'setcategories' && $usecate
 	$db->begin();
 
 	// New category typed on the form: created, then assigned with the selected ones
-	if ($newcatlabel !== '') {
+	if ($newcatlabel !== '' && !$usercancreatecategory) {
+		$error++;
+		setEventMessages($langs->trans('NotEnoughPermissions'), null, 'errors');
+	} elseif ($newcatlabel !== '') {
 		$newcat = new Categorie($db);
 		$newcat->label = $newcatlabel;
 		$newcat->type = Categorie::TYPE_PRODUCT;
@@ -559,7 +598,10 @@ if ($searchresult !== null) {
 		if ($usebarcode) {
 			print '<th>'.$langs->trans('ProductPlusBarcode').'</th>';
 		}
-		print '<th class="right">'.$langs->trans('SellingPrice').'</th>';
+		$showpricecol = (!$advperms || $user->hasRight('product', 'product_advance', 'read_prices') || $user->hasRight('service', 'service_advance', 'read_prices'));
+		if ($showpricecol) {
+			print '<th class="right">'.$langs->trans('SellingPrice').'</th>';
+		}
 		if ($usestock) {
 			print '<th class="center">'.$langs->trans('PhysicalStock').'</th>';
 		}
@@ -572,8 +614,10 @@ if ($searchresult !== null) {
 			if ($usebarcode) {
 				print '<td class="nowraponall"><span class="opacitymedium">'.dolPrintHTML((string) $row->barcode).'</span></td>';
 			}
-			$showprice = ($row->price_base_type == 'TTC' ? $row->price_ttc : $row->price);
-			print '<td class="right nowraponall"><span class="amount">'.price($showprice, 0, $langs, 0, -1, -1, $conf->currency).'</span> <span class="opacitymedium small">'.$langs->trans($row->price_base_type == 'TTC' ? 'TTC' : 'HT').'</span></td>';
+			if ($showpricecol) {
+				$showprice = ($row->price_base_type == 'TTC' ? $row->price_ttc : $row->price);
+				print '<td class="right nowraponall"><span class="amount">'.price($showprice, 0, $langs, 0, -1, -1, $conf->currency).'</span> <span class="opacitymedium small">'.$langs->trans($row->price_base_type == 'TTC' ? 'TTC' : 'HT').'</span></td>';
+			}
 			if ($usestock) {
 				print '<td class="center">'.($row->fk_product_type == Product::TYPE_SERVICE ? '' : productplus_qty_badge($row->stock)).'</td>';
 			}
@@ -604,7 +648,7 @@ if ($object->id > 0) {
 	print '<table class="border tableforfield centpercent">';
 
 	// Ref
-	print '<tr'.($action == 'editref' ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($langs->trans('Ref'), 'editref', $action != 'editref', $object->id).'</td><td>';
+	print '<tr'.($action == 'editref' ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($langs->trans('Ref'), 'editref', $action != 'editref' && $needright['ref'], $object->id).'</td><td>';
 	if ($action == 'editref') {
 		$value = GETPOSTISSET('newref') ? GETPOST('newref', 'alphanohtml') : $object->ref;
 		print productplus_form_start($object->id, 'setref');
@@ -616,7 +660,7 @@ if ($object->id > 0) {
 	print '</td></tr>';
 
 	// Label
-	print '<tr'.($action == 'editlabel' ? ' class="pp-editing"' : '').'><td>'.productplus_field_label($langs->trans('Label'), 'editlabel', $action != 'editlabel', $object->id).'</td><td>';
+	print '<tr'.($action == 'editlabel' ? ' class="pp-editing"' : '').'><td>'.productplus_field_label($langs->trans('Label'), 'editlabel', $action != 'editlabel' && $needright['label'], $object->id).'</td><td>';
 	if ($action == 'editlabel') {
 		$value = GETPOSTISSET('label') ? GETPOST('label', 'alphanohtml') : $object->label;
 		print productplus_form_start($object->id, 'setlabel');
@@ -630,7 +674,7 @@ if ($object->id > 0) {
 
 	// Barcode (value and type)
 	if ($usebarcode) {
-		print '<tr'.($action == 'editbarcode' ? ' class="pp-editing"' : '').'><td>'.productplus_field_label($langs->trans('ProductPlusBarcode'), 'editbarcode', $action != 'editbarcode', $object->id).'</td><td>';
+		print '<tr'.($action == 'editbarcode' ? ' class="pp-editing"' : '').'><td>'.productplus_field_label($langs->trans('ProductPlusBarcode'), 'editbarcode', $action != 'editbarcode' && $needright['barcode'], $object->id).'</td><td>';
 		if ($action == 'editbarcode') {
 			$formbarcode = new FormBarCode($db);
 			$value = GETPOSTISSET('barcode') ? GETPOST('barcode', 'alphanohtml') : $object->barcode;
@@ -656,7 +700,7 @@ if ($object->id > 0) {
 	}
 
 	// Description
-	print '<tr'.($action == 'editdesc' ? ' class="pp-editing"' : '').'><td class="tdtop">'.productplus_field_label($langs->trans('Description'), 'editdesc', $action != 'editdesc', $object->id).'</td><td>';
+	print '<tr'.($action == 'editdesc' ? ' class="pp-editing"' : '').'><td class="tdtop">'.productplus_field_label($langs->trans('Description'), 'editdesc', $action != 'editdesc' && $needright['desc'], $object->id).'</td><td>';
 	if ($action == 'editdesc') {
 		$value = GETPOSTISSET('desc') ? GETPOST('desc', 'restricthtml') : $object->description;
 		print productplus_form_start($object->id, 'setdesc');
@@ -674,7 +718,7 @@ if ($object->id > 0) {
 
 	// Categories
 	if ($usecategories) {
-		print '<tr'.($action == 'editcategories' ? ' class="pp-editing"' : '').'><td class="tdtop">'.productplus_field_label($langs->trans('Categories'), 'editcategories', $action != 'editcategories', $object->id).'</td><td>';
+		print '<tr'.($action == 'editcategories' ? ' class="pp-editing"' : '').'><td class="tdtop">'.productplus_field_label($langs->trans('Categories'), 'editcategories', $action != 'editcategories' && $needright['categories'], $object->id).'</td><td>';
 		if ($action == 'editcategories') {
 			$cate_arbo = $form->select_all_categories(Categorie::TYPE_PRODUCT, '', 'parent', 64, 0, 3);
 			$arrayselected = array();
@@ -692,12 +736,14 @@ if ($object->id > 0) {
 			print productplus_form_start($object->id, 'setcategories');
 			print '<div class="centpercent">'.img_picto('', 'category', 'class="pictofixedwidth"').$form->multiselectarray('categories', $cate_arbo, $arrayselected, 0, 0, 'minwidth200 widthcentpercentminusx', 0, 0).'</div>';
 			// Create a category without leaving the card
-			print '<div class="pp-newcat centpercent">';
-			print '<div class="pp-newcat-title">'.img_picto('', 'fa-plus-circle', 'class="pictofixedwidth"').$langs->trans('ProductPlusNewCategory').'</div>';
-			print '<input type="text" name="newcat_label" class="minwidth150 maxwidth200" maxlength="180" value="'.dol_escape_htmltag(GETPOST('newcat_label', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusNewCategoryLabel')).'">';
-			print '<span class="nowraponall">'.$langs->trans('ProductPlusNewCategoryParent').' ';
-			print $form->select_all_categories(Categorie::TYPE_PRODUCT, (GETPOSTINT('newcat_parent') > 0 ? GETPOSTINT('newcat_parent') : ''), 'newcat_parent', 64, 0, 0, 0, 'maxwidth150', 1).'</span>';
-			print '</div>';
+			if ($usercancreatecategory) {
+				print '<div class="pp-newcat centpercent">';
+				print '<div class="pp-newcat-title">'.img_picto('', 'fa-plus-circle', 'class="pictofixedwidth"').$langs->trans('ProductPlusNewCategory').'</div>';
+				print '<input type="text" name="newcat_label" class="minwidth150 maxwidth200" maxlength="180" value="'.dol_escape_htmltag(GETPOST('newcat_label', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusNewCategoryLabel')).'">';
+				print '<span class="nowraponall">'.$langs->trans('ProductPlusNewCategoryParent').' ';
+				print $form->select_all_categories(Categorie::TYPE_PRODUCT, (GETPOSTINT('newcat_parent') > 0 ? GETPOSTINT('newcat_parent') : ''), 'newcat_parent', 64, 0, 0, 0, 'maxwidth150', 1).'</span>';
+				print '</div>';
+			}
 			print productplus_form_end();
 		} else {
 			$cathtml = $form->showCategories($object->id, Categorie::TYPE_PRODUCT, 1);
@@ -711,7 +757,7 @@ if ($object->id > 0) {
 	// Stock by warehouse
 	if ($usestock && ($object->isProduct() || getDolGlobalString('STOCK_SUPPORTS_SERVICES'))) {
 		$hasbatch = $object->hasbatch();
-		$canedit = !$hasbatch;
+		$canedit = (!$hasbatch && $needright['stock']);
 
 		// All the open warehouses, and the closed ones that still have stock of the product
 		$sql = "SELECT e.rowid, e.ref, e.lieu, e.statut as status, ps.reel";
@@ -725,7 +771,7 @@ if ($object->id > 0) {
 		$linkstock = '<a class="smallpaddingimp" href="'.DOL_URL_ROOT.'/product/stock/product.php?id='.((int) $object->id).'" title="'.dol_escape_htmltag($langs->trans('ProductPlusGoToStock')).'">'.img_picto($langs->trans('ProductPlusGoToStock'), 'fa-external-link-alt').'</a>';
 		print productplus_section($form->textwithpicto($langs->trans('ProductPlusStockByWarehouse'), $langs->trans('ProductPlusStockHelp')), 'stock', $linkstock);
 
-		if ($hasbatch) {
+		if ($hasbatch && $needright['stock']) {
 			print '<div class="info">'.$langs->trans('ProductPlusStockBatch').' <a href="'.DOL_URL_ROOT.'/product/stock/product.php?id='.((int) $object->id).'">'.$langs->trans('ProductPlusGoToStock').'</a></div>';
 		}
 
@@ -796,9 +842,11 @@ if ($object->id > 0) {
 	 */
 	print '<div class="fichehalfright">';
 
-	print productplus_section($langs->trans('SellingPrice'), 'fa-tag');
-	print '<table class="border tableforfield centpercent">';
-	$levels = ($multiprices ? range(1, $nblevels) : array(0));
+	$levels = ($usercanreadprice ? ($multiprices ? range(1, $nblevels) : array(0)) : array());
+	if (count($levels)) {
+		print productplus_section($langs->trans('SellingPrice'), 'fa-tag');
+		print '<table class="border tableforfield centpercent">';
+	}
 	foreach ($levels as $lvl) {
 		if ($lvl > 0) {
 			$price = $object->multiprices[$lvl] ?? 0;
@@ -819,7 +867,7 @@ if ($object->id > 0) {
 		$pricebase = ($pricebase == 'TTC' ? 'TTC' : 'HT');
 		$editthis = ($action == 'editprice' && $level == $lvl);
 
-		print '<tr'.($editthis ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($label, 'editprice', !$editthis, $object->id, '&level='.$lvl).'</td><td>';
+		print '<tr'.($editthis ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($label, 'editprice', !$editthis && $needright['price'], $object->id, '&level='.$lvl).'</td><td>';
 		if ($editthis) {
 			$value = GETPOSTISSET('price') ? GETPOST('price', 'alpha') : price($pricebase == 'TTC' ? $pricettc : $price);
 			$base = GETPOSTISSET('price_base_type') ? GETPOST('price_base_type', 'aZ09') : $pricebase;
@@ -838,27 +886,31 @@ if ($object->id > 0) {
 		}
 		print '</td></tr>';
 	}
-	print '</table>';
+	if (count($levels)) {
+		print '</table>';
+	}
 
 	// Purchase price
-	print productplus_section($langs->trans('ProductPlusPurchasePrice'), 'fa-shopping-cart');
-	print '<table class="border tableforfield centpercent">';
-	print '<tr'.($action == 'editcostprice' ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($langs->trans('ProductPlusCostPrice'), 'editcostprice', $action != 'editcostprice', $object->id).'</td><td>';
-	if ($action == 'editcostprice') {
-		$value = GETPOSTISSET('cost_price') ? GETPOST('cost_price', 'alpha') : ($object->cost_price !== null && $object->cost_price !== '' ? price($object->cost_price) : '');
-		print productplus_form_start($object->id, 'setcostprice');
-		print '<input type="text" name="cost_price" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus><span>'.$langs->trans('HT').'</span>';
-		print productplus_form_end();
-	} elseif ($object->cost_price !== null && $object->cost_price !== '') {
-		print '<span class="amount">'.price($object->cost_price, 0, $langs, 0, -1, -1, $conf->currency).'</span> <span class="opacitymedium">'.$langs->trans('HT').'</span>';
-	} else {
-		print '<span class="pp-muted">'.$langs->trans('ProductPlusNotSet').'</span>';
+	if ($usercanreadsupplierprice) {
+		print productplus_section($langs->trans('ProductPlusPurchasePrice'), 'fa-shopping-cart');
+		print '<table class="border tableforfield centpercent">';
+		print '<tr'.($action == 'editcostprice' ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($langs->trans('ProductPlusCostPrice'), 'editcostprice', $action != 'editcostprice' && $needright['costprice'], $object->id).'</td><td>';
+		if ($action == 'editcostprice') {
+			$value = GETPOSTISSET('cost_price') ? GETPOST('cost_price', 'alpha') : ($object->cost_price !== null && $object->cost_price !== '' ? price($object->cost_price) : '');
+			print productplus_form_start($object->id, 'setcostprice');
+			print '<input type="text" name="cost_price" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus><span>'.$langs->trans('HT').'</span>';
+			print productplus_form_end();
+		} elseif ($object->cost_price !== null && $object->cost_price !== '') {
+			print '<span class="amount">'.price($object->cost_price, 0, $langs, 0, -1, -1, $conf->currency).'</span> <span class="opacitymedium">'.$langs->trans('HT').'</span>';
+		} else {
+			print '<span class="pp-muted">'.$langs->trans('ProductPlusNotSet').'</span>';
 	}
 	print '</td></tr>';
 	print '<tr><td>'.$form->textwithpicto($langs->trans('ProductPlusPmp'), $langs->trans('PMPValue').': '.$langs->trans('ProductPlusPmpHelp')).'</td><td>';
 	print '<span class="amount">'.price($object->pmp, 0, $langs, 0, -1, -1, $conf->currency).'</span> <span class="opacitymedium">'.$langs->trans('HT').'</span>';
 	print '</td></tr>';
 	print '</table>';
+	}
 
 	// Supplier prices
 	if ($usesuppliers) {
@@ -866,7 +918,7 @@ if ($object->id > 0) {
 		$supplierprices = $pfstatic->list_product_fournisseur_price($object->id, 's.nom', 'ASC');
 		$supplierprices = is_array($supplierprices) ? $supplierprices : array();
 
-		$addbutton = dolGetButtonTitle($langs->trans('ProductPlusAddSupplierPrice'), '', 'fa fa-plus-circle', $selfurl.'&action=createsupplierprice&token='.newToken(), '', ($action == 'createsupplierprice' ? -1 : 1));
+		$addbutton = (!$needright['supplierprice'] ? '' : dolGetButtonTitle($langs->trans('ProductPlusAddSupplierPrice'), '', 'fa fa-plus-circle', $selfurl.'&action=createsupplierprice&token='.newToken(), '', ($action == 'createsupplierprice' ? -1 : 1)));
 		print productplus_section($langs->trans('ProductPlusSupplierPrices'), 'supplier', $addbutton);
 
 		print '<div class="div-table-responsive-no-min">';
@@ -912,8 +964,10 @@ if ($object->id > 0) {
 				}
 				print '</td>';
 				print '<td class="right nowraponall">';
-				$url = $selfurl.'&action=editsupplierprice&pfpid='.((int) $sp->product_fourn_price_id).'&token='.newToken();
-				print '<a class="editfielda" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
+				if ($needright['supplierprice']) {
+					$url = $selfurl.'&action=editsupplierprice&pfpid='.((int) $sp->product_fourn_price_id).'&token='.newToken();
+					print '<a class="editfielda" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
+				}
 				print '</td>';
 			}
 			print '</tr>';

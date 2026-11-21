@@ -2,7 +2,7 @@
 
 ## Features
 
-Quick product card for the administrators, in the menu **Products > Product card** (*Ficha Producto*).
+Quick product card, in the menu **Products > Product card** (*Ficha Producto*).
 
 - Search the product by ref, label or barcode. An exact ref or barcode (typed or scanned) opens the product at once; otherwise the matching products are listed.
 - On the card every field has its pencil *Modify*, like the native card:
@@ -13,7 +13,7 @@ Quick product card for the administrators, in the menu **Products > Product card
 - Every change goes through the native methods of Dolibarr (`Product::update()`, `updatePrice()`, `setCategories()`, `ProductFournisseur::update_buyprice()`, `correct_stock()`), so triggers, price history and stock movements are the same as on the native card.
 - Without a barcode numbering module, a barcode already used by another product is refused.
 
-Only the administrators (`$user->admin`) see the menu and can open the page.
+The menu and the page need the permission **Use the product card** (*Users > Permissions > Ficha Producto*). The administrators get it when the module is enabled. What a user can change on the card still depends on the native permissions, as on the native pages: create/modify products (or services) for the data and the selling price, read prices with the advanced permissions, create categories for the new category, read suppliers for the purchase prices, read stock and create stock movements for the stock.
 
 ## Translations
 

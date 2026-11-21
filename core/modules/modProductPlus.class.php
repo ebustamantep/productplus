@@ -51,7 +51,7 @@ class modProductPlus extends DolibarrModules
 		$this->descriptionlong = "ProductPlusDescriptionLong";
 		$this->editor_name = 'Edgar Bustamante';
 		$this->editor_url = '';
-		$this->version = '1.1.0';
+		$this->version = '1.2.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto = 'fa-edit';
 
@@ -102,8 +102,14 @@ class modProductPlus extends DolibarrModules
 		$this->boxes = array();
 		$this->cronjobs = array();
 
-		// No permissions: the card is for the administrators only
+		// Permission to use the card. What can be changed on it still depends on the native rights (products, stock...)
 		$this->rights = array();
+		$r = 0;
+		$this->rights[$r][0] = $this->numero * 100 + 1;
+		$this->rights[$r][1] = 'ProductPlusPermUse';
+		$this->rights[$r][4] = 'use';
+		$this->rights[$r][5] = '';
+		$r++;
 
 		// Menu: Products > Product card
 		$this->menu = array();
@@ -119,7 +125,7 @@ class modProductPlus extends DolibarrModules
 			'langs' => 'productplus@productplus',
 			'position' => 1000 + $r,
 			'enabled' => 'isModEnabled("productplus")',
-			'perms' => '$user->admin',
+			'perms' => '$user->hasRight("productplus", "use")',
 			'target' => '',
 			'user' => 0,
 		);

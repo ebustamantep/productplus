@@ -9,11 +9,11 @@
 # Module
 #
 ModuleProductPlusName = Product card
-ModuleProductPlusDesc = Quick product card for the administrators: search by ref, label or barcode and modify the main data of the product
+ModuleProductPlusDesc = Quick product card: search by ref, label or barcode and modify the main data of the product
 Module958800Name = Product card
-Module958800Desc = Quick product card for the administrators: search by ref, label or barcode and modify the main data of the product
-ProductPlusDescription = Quick product card for the administrators: search by ref, label or barcode and modify the main data of the product
-ProductPlusDescriptionLong = <p>Menu <strong>Products &gt; Product card</strong>, for the administrators only.</p><p>Type or scan the ref, the label or the barcode of the product. On the card, every field has its pencil <em>Modify</em>: ref, label, barcode, description, categories, selling price, purchase price (cost price and supplier prices) and stock by warehouse.</p>
+Module958800Desc = Quick product card: search by ref, label or barcode and modify the main data of the product
+ProductPlusDescription = Quick product card: search by ref, label or barcode and modify the main data of the product
+ProductPlusDescriptionLong = <p>Menu <strong>Products &gt; Product card</strong>, for the users with the permission <em>Use the product card</em> (the administrators get it when the module is enabled). Every change also needs the matching native permission of Products, Categories, Suppliers or Stock.</p><p>Type or scan the ref, the label or the barcode of the product. On the card, every field has its pencil <em>Modify</em>: ref, label, barcode, description, categories, selling price, purchase price (cost price and supplier prices) and stock by warehouse.</p>
 ProductPlusSetup = Product card
 ProductPlusAbout = About Product card
 
@@ -21,6 +21,7 @@ ProductPlusAbout = About Product card
 # Menu and card
 #
 ProductPlusMenuCard = Product card
+ProductPlusPermUse = Use the product card (what can be modified depends on the permissions of Products, Categories, Suppliers and Stock)
 ProductPlusCardTitle = Product card
 ProductPlusSearchPlaceholder = Ref, label or barcode
 ProductPlusSearchHelp = Type or scan the ref, the label or the barcode of the product and press Enter.

@@ -53,18 +53,20 @@ function productplusAdminPrepareHead()
  * @param	DoliDB	$db		Database handler
  * @param	string	$search	Text typed or scanned
  * @param	int		$limit	Max number of rows
+ * @param	int[]	$types	Product types the user can read (Product::TYPE_PRODUCT, Product::TYPE_SERVICE)
  * @return	array{rows:array<int,object>,more:bool}	Rows found (rowid, ref, label, barcode, price, price_ttc, price_base_type, stock, tosell, tobuy, fk_product_type) and true if there are more than $limit
  */
-function productplus_search_products($db, $search, $limit = 100)
+function productplus_search_products($db, $search, $limit = 100, $types = array(0, 1))
 {
 	$search = trim($search);
-	if ($search === '') {
+	if ($search === '' || !count($types)) {
 		return array('rows' => array(), 'more' => false);
 	}
 
 	$select = "SELECT p.rowid, p.ref, p.label, p.barcode, p.price, p.price_ttc, p.price_base_type, p.stock, p.tosell, p.tobuy, p.fk_product_type";
 	$select .= " FROM ".$db->prefix()."product as p";
 	$select .= " WHERE p.entity IN (".getEntity('product').")";
+	$select .= " AND p.fk_product_type IN (".$db->sanitize(implode(',', array_map('intval', $types))).")";
 
 	// Exact ref or barcode first: a barcode scanner must open the product at once
 	$sql = $select." AND (p.ref = '".$db->escape($search)."' OR p.barcode = '".$db->escape($search)."')";

@@ -9,11 +9,11 @@
 # Módulo
 #
 ModuleProductPlusName = Ficha Producto
-ModuleProductPlusDesc = Ficha de producto rápida para los administradores: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
+ModuleProductPlusDesc = Ficha de producto rápida: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
 Module958800Name = Ficha Producto
-Module958800Desc = Ficha de producto rápida para los administradores: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
-ProductPlusDescription = Ficha de producto rápida para los administradores: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
-ProductPlusDescriptionLong = <p>Menú <strong>Productos &gt; Ficha Producto</strong>, solo para administradores.</p><p>Escriba o escanee la ref, la etiqueta o el código de barras del producto. En la ficha cada dato tiene su lápiz <em>Modificar</em>: ref, etiqueta, código de barras, descripción, categorías, precio de venta, precio de compra (precio de costo y precios de proveedor) y stock por almacén.</p>
+Module958800Desc = Ficha de producto rápida: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
+ProductPlusDescription = Ficha de producto rápida: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
+ProductPlusDescriptionLong = <p>Menú <strong>Productos &gt; Ficha Producto</strong>, para los usuarios con el permiso <em>Usar la Ficha Producto</em> (los administradores lo reciben al activar el módulo). Cada cambio exige además el permiso nativo correspondiente de Productos, Categorías, Proveedores o Stock.</p><p>Escriba o escanee la ref, la etiqueta o el código de barras del producto. En la ficha cada dato tiene su lápiz <em>Modificar</em>: ref, etiqueta, código de barras, descripción, categorías, precio de venta, precio de compra (precio de costo y precios de proveedor) y stock por almacén.</p>
 ProductPlusSetup = Ficha Producto
 ProductPlusAbout = Acerca de Ficha Producto
 
@@ -21,6 +21,7 @@ ProductPlusAbout = Acerca de Ficha Producto
 # Menú y ficha
 #
 ProductPlusMenuCard = Ficha Producto
+ProductPlusPermUse = Usar la Ficha Producto (lo que puede modificar depende de sus permisos de Productos, Categorías, Proveedores y Stock)
 ProductPlusCardTitle = Ficha Producto
 ProductPlusSearchPlaceholder = Ref, etiqueta o código de barras
 ProductPlusSearchHelp = Escriba o escanee la ref, la etiqueta o el código de barras del producto y pulse Intro.
