@@ -6,7 +6,7 @@ Quick product card for the administrators, in the menu **Products > Product card
 
 - Search the product by ref, label or barcode. An exact ref or barcode (typed or scanned) opens the product at once; otherwise the matching products are listed.
 - On the card every field has its pencil *Modify*, like the native card:
-  - Ref, label, barcode (value and type), description and categories.
+  - Ref, label, barcode (value and type), description and categories, with the creation of a new category (and its parent) without leaving the card.
   - Selling price (price, HT/TTC and VAT rate), one row per level when the multiprices are enabled. The min price does not change.
   - Purchase price: cost price, weighted average price (read only) and the unit price of each supplier price. New supplier price (quantity 1).
   - Stock by warehouse: type the real quantity, the difference is saved as a stock correction movement. Products with lots/serial numbers are corrected on their native stock page.

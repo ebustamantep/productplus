@@ -1,5 +1,9 @@
 # CHANGELOG PRODUCTPLUS FOR [DOLIBARR ERP & CRM](https://www.dolibarr.org)
 
+## 1.1.0
+
+- Create a category from the card: on the form of Labels/Categories, line "New category" (name and optional parent). It is created on save with the native method and assigned to the product with the selected ones. A name that already exists under the same parent is reused, not duplicated. All in one transaction.
+
 ## 1.0.0
 
 First version.

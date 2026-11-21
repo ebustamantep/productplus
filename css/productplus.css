@@ -122,3 +122,20 @@
 .pp-muted {
 	opacity: 0.6;
 }
+
+/* New category inside the categories form */
+.pp-newcat {
+	flex-basis: 100%;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	padding-top: 8px;
+	margin-top: 4px;
+	border-top: 1px dashed rgba(128, 128, 128, 0.3);
+}
+.pp-newcat .pp-newcat-title {
+	flex-basis: 100%;
+	opacity: 0.75;
+	font-size: 0.9em;
+}

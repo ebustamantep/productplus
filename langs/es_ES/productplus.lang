@@ -35,6 +35,10 @@ ProductPlusGeneral = Datos generales
 ProductPlusNotSet = Sin definir
 ProductPlusBarcode = Código de barras
 ProductPlusPmp = Costo promedio (PMP)
+ProductPlusNewCategory = Nueva categoría (se crea al grabar y queda asignada)
+ProductPlusNewCategoryLabel = Nombre de la categoría
+ProductPlusNewCategoryParent = dentro de
+ProductPlusCategoryCreated = Categoría «%s» creada.
 
 #
 # Precios

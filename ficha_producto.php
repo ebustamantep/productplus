@@ -228,11 +228,55 @@ if (empty($reshook) && $object->id > 0 && in_array($action, array('setref', 'set
 if (empty($reshook) && $object->id > 0 && $action == 'setcategories' && $usecategories) {
 	$categories = GETPOST('categories', 'array');
 	$categories = array_values(array_filter(array_map('intval', is_array($categories) ? $categories : array())));
-	$result = $object->setCategories($categories);
-	if ($result < 0) {
+	$newcatlabel = trim(GETPOST('newcat_label', 'alphanohtml'));
+	$newcatparent = max(0, GETPOSTINT('newcat_parent'));
+	$error = 0;
+	$created = '';
+
+	$db->begin();
+
+	// New category typed on the form: created, then assigned with the selected ones
+	if ($newcatlabel !== '') {
+		$newcat = new Categorie($db);
+		$newcat->label = $newcatlabel;
+		$newcat->type = Categorie::TYPE_PRODUCT;
+		$newcat->fk_parent = $newcatparent;
+		$newcat->visible = 0;
+		$result = $newcat->create($user);
+		if ($result == -4) {
+			// Same label under the same parent: the existing one is used
+			$sql = "SELECT c.rowid FROM ".$db->prefix()."categorie as c";
+			$sql .= " WHERE c.entity IN (".getEntity('category').") AND c.type = ".((int) $newcat->MAP_ID[Categorie::TYPE_PRODUCT]);
+			$sql .= " AND c.fk_parent = ".((int) $newcatparent)." AND c.label = '".$db->escape($newcatlabel)."'";
+			$rows = productplus_fetch_rows($db, $sql.$db->plimit(1));
+			if (count($rows)) {
+				$categories[] = (int) $rows[0]->rowid;
+			} else {
+				$error++;
+				setEventMessages('', productplus_errors($newcat), 'errors');
+			}
+		} elseif ($result < 0) {
+			$error++;
+			setEventMessages('', productplus_errors($newcat), 'errors');
+		} else {
+			$categories[] = (int) $result;
+			$created = $newcatlabel;
+		}
+	}
+
+	if (!$error && $object->setCategories(array_values(array_unique($categories))) < 0) {
+		$error++;
 		setEventMessages('', productplus_errors($object), 'errors');
+	}
+
+	if ($error) {
+		$db->rollback();
 		$action = 'editcategories';
 	} else {
+		$db->commit();
+		if ($created !== '') {
+			setEventMessages($langs->trans('ProductPlusCategoryCreated', $created), null, 'mesgs');
+		}
 		setEventMessages($langs->trans('RecordSaved'), null, 'mesgs');
 		header('Location: '.$selfurl);
 		exit;
@@ -647,6 +691,13 @@ if ($object->id > 0) {
 			}
 			print productplus_form_start($object->id, 'setcategories');
 			print '<div class="centpercent">'.img_picto('', 'category', 'class="pictofixedwidth"').$form->multiselectarray('categories', $cate_arbo, $arrayselected, 0, 0, 'minwidth200 widthcentpercentminusx', 0, 0).'</div>';
+			// Create a category without leaving the card
+			print '<div class="pp-newcat centpercent">';
+			print '<div class="pp-newcat-title">'.img_picto('', 'fa-plus-circle', 'class="pictofixedwidth"').$langs->trans('ProductPlusNewCategory').'</div>';
+			print '<input type="text" name="newcat_label" class="minwidth150 maxwidth200" maxlength="180" value="'.dol_escape_htmltag(GETPOST('newcat_label', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusNewCategoryLabel')).'">';
+			print '<span class="nowraponall">'.$langs->trans('ProductPlusNewCategoryParent').' ';
+			print $form->select_all_categories(Categorie::TYPE_PRODUCT, (GETPOSTINT('newcat_parent') > 0 ? GETPOSTINT('newcat_parent') : ''), 'newcat_parent', 64, 0, 0, 0, 'maxwidth150', 1).'</span>';
+			print '</div>';
 			print productplus_form_end();
 		} else {
 			$cathtml = $form->showCategories($object->id, Categorie::TYPE_PRODUCT, 1);

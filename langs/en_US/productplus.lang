@@ -35,6 +35,10 @@ ProductPlusGeneral = General data
 ProductPlusNotSet = Not set
 ProductPlusBarcode = Barcode
 ProductPlusPmp = Average cost (WAP)
+ProductPlusNewCategory = New category (created on save and assigned)
+ProductPlusNewCategoryLabel = Name of the category
+ProductPlusNewCategoryParent = inside
+ProductPlusCategoryCreated = Category «%s» created.
 
 #
 # Prices
