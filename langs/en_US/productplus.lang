@@ -29,11 +29,21 @@ ProductPlusResults = %s products match «%s». Choose one.
 ProductPlusTooManyResults = Only the first %s are shown. Type more letters to narrow the search.
 ProductPlusFullCard = Full card
 ProductPlusErrorBarcodeUsed = The barcode %s is already used by the product %s.
+ProductPlusEmptyTitle = Search a product to see its card
+ProductPlusFullCardHelp = Open the native card of the product, with all its tabs
+ProductPlusGeneral = General data
+ProductPlusNotSet = Not set
+ProductPlusBarcode = Barcode
+ProductPlusPmp = Average cost (WAP)
 
 #
 # Prices
 #
 ProductPlusSellingPriceLevel = Selling price (level %s)
+ProductPlusPrice = Price
+ProductPlusSupplierPrices = Supplier prices
+ProductPlusQtyMinShort = Min. qty
+ProductPlusUnitPriceShort = Unit price
 ProductPlusPurchasePrice = Purchase price
 ProductPlusCostPrice = Cost price
 ProductPlusPmpHelp = Calculated by Dolibarr with the stock entries (it can not be modified).
@@ -47,6 +57,7 @@ ProductPlusAddSupplierPriceHelp = Price for a minimum quantity of 1, with the VA
 #
 ProductPlusStockByWarehouse = Stock by warehouse
 ProductPlusNewStock = New stock
+ProductPlusStockReason = Reason of the stock movement (optional)
 ProductPlusStockCorrectionLabel = Correction from the product card
 ProductPlusStockCorrected = Stock of %s corrected: %s → %s
 ProductPlusStockUnchanged = The stock did not change.

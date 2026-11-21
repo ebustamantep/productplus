@@ -29,11 +29,21 @@ ProductPlusResults = %s productos coinciden con «%s». Elija uno.
 ProductPlusTooManyResults = Solo se muestran los %s primeros. Escriba más letras para acotar la búsqueda.
 ProductPlusFullCard = Ficha completa
 ProductPlusErrorBarcodeUsed = El código de barras %s ya lo usa el producto %s.
+ProductPlusEmptyTitle = Busque un producto para ver su ficha
+ProductPlusFullCardHelp = Abrir la ficha nativa del producto, con todas sus pestañas
+ProductPlusGeneral = Datos generales
+ProductPlusNotSet = Sin definir
+ProductPlusBarcode = Código de barras
+ProductPlusPmp = Costo promedio (PMP)
 
 #
 # Precios
 #
 ProductPlusSellingPriceLevel = Precio de venta (nivel %s)
+ProductPlusPrice = Precio
+ProductPlusSupplierPrices = Precios de proveedor
+ProductPlusQtyMinShort = Cant. mín.
+ProductPlusUnitPriceShort = Precio unit.
 ProductPlusPurchasePrice = Precio de compra
 ProductPlusCostPrice = Precio de costo
 ProductPlusPmpHelp = Lo calcula Dolibarr con las entradas de stock (no se puede modificar).
@@ -47,6 +57,7 @@ ProductPlusAddSupplierPriceHelp = Precio para una cantidad mínima de 1, con la 
 #
 ProductPlusStockByWarehouse = Stock por almacén
 ProductPlusNewStock = Nuevo stock
+ProductPlusStockReason = Motivo del movimiento de stock (opcional)
 ProductPlusStockCorrectionLabel = Corrección desde la Ficha Producto
 ProductPlusStockCorrected = Stock de %s corregido: %s → %s
 ProductPlusStockUnchanged = El stock no cambió.

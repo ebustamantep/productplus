@@ -230,7 +230,7 @@ function productplus_field_label($label, $editaction, $showpencil, $id, $morepar
  */
 function productplus_form_start($id, $setaction, $hidden = array())
 {
-	$out = '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.((int) $id).'">';
+	$out = '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.((int) $id).'" class="pp-form">';
 	$out .= '<input type="hidden" name="token" value="'.newToken().'">';
 	$out .= '<input type="hidden" name="action" value="'.dol_escape_htmltag($setaction).'">';
 	$out .= '<input type="hidden" name="id" value="'.((int) $id).'">';
@@ -250,9 +250,38 @@ function productplus_form_end()
 {
 	global $langs;
 
-	$out = ' <input type="submit" class="button smallpaddingimp nomargintop nomarginbottom" name="save" value="'.dol_escape_htmltag($langs->trans('Save')).'">';
-	$out .= ' <input type="submit" class="button button-cancel smallpaddingimp nomargintop nomarginbottom" name="cancel" value="'.dol_escape_htmltag($langs->trans('Cancel')).'">';
+	$out = '<span class="pp-form-buttons">';
+	$out .= '<input type="submit" class="button smallpaddingimp nomargintop nomarginbottom" name="save" value="'.dol_escape_htmltag($langs->trans('Save')).'">';
+	$out .= '<input type="submit" class="button button-cancel smallpaddingimp nomargintop nomarginbottom" name="cancel" value="'.dol_escape_htmltag($langs->trans('Cancel')).'">';
+	$out .= '</span>';
 	$out .= '</form>';
 
 	return $out;
+}
+
+/**
+ * Title of a section of the card
+ *
+ * @param	string	$title			Translated title (may contain a tooltip picto)
+ * @param	string	$picto			Picto (ex: 'fa-tag', 'stock')
+ * @param	string	$morehtmlright	HTML on the right (ex: a native "+" button)
+ * @return	string					HTML
+ */
+function productplus_section($title, $picto, $morehtmlright = '')
+{
+	return load_fiche_titre($title, $morehtmlright, $picto, 0, '', 'pp-section');
+}
+
+/**
+ * Quantity in a coloured badge: green if there is stock, grey if zero, red if negative
+ *
+ * @param	float|string|null	$qty	Quantity
+ * @return	string						HTML
+ */
+function productplus_qty_badge($qty)
+{
+	$qty = (float) $qty;
+	$status = ($qty > 0 ? '4' : ($qty < 0 ? '8' : '5'));
+
+	return '<span class="badge badge-status'.$status.' pp-qty">'.productplus_qty($qty).'</span>';
 }

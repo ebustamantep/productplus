@@ -1,0 +1,124 @@
+/* Copyright (C) 2026 Edgar Bustamante
+ *
+ * Styles of the product card of ProductPlus. Only colours of the theme (variables, opacity) so the
+ * dark mode and the other themes keep working.
+ */
+
+/* Search on the right of the title */
+.pp-search {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+.pp-search-field {
+	position: relative;
+	display: inline-block;
+}
+.pp-search-field .pp-search-icon {
+	position: absolute;
+	left: 9px;
+	top: 50%;
+	transform: translateY(-50%);
+	opacity: 0.45;
+	pointer-events: none;
+}
+.pp-search-field input.pp-search-input {
+	width: 340px;
+	max-width: 52vw;
+	padding: 6px 8px 6px 30px;
+	border: 1px solid rgba(128, 128, 128, 0.35);
+	border-radius: 6px;
+	background: var(--inputbackgroundcolor, transparent);
+	box-sizing: border-box;
+}
+/* Small screens: the button is hidden (hideonsmartphone), Enter or the barcode scanner searches */
+@media only screen and (max-width: 767px) {
+	.pp-search-field input.pp-search-input {
+		max-width: 58vw;
+	}
+}
+.pp-search-field input.pp-search-input:focus {
+	border-color: var(--colortextlink, #0a66c2);
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(10, 102, 194, 0.12);
+}
+
+/* Empty page: invite to search */
+.pp-empty {
+	text-align: center;
+	padding: 60px 20px;
+	border: 1px dashed rgba(128, 128, 128, 0.35);
+	border-radius: 8px;
+	margin-top: 10px;
+}
+.pp-empty .pp-empty-icon {
+	font-size: 3em;
+	opacity: 0.25;
+	margin-bottom: 12px;
+}
+.pp-empty .pp-empty-title {
+	font-size: 1.25em;
+	margin-bottom: 6px;
+}
+
+/* Sections of the card */
+.mod-productplus .pp-section {
+	margin-top: 22px;
+	margin-bottom: 4px;
+}
+.mod-productplus .pp-section:first-child {
+	margin-top: 8px;
+}
+.mod-productplus .fichehalfleft table.tableforfield td.titlefield,
+.mod-productplus .fichehalfright table.tableforfield td.titlefield {
+	width: 38%;
+}
+
+/* Row being edited */
+.mod-productplus tr.pp-editing > td {
+	background: rgba(128, 128, 128, 0.07);
+}
+
+/* Inline edit forms: inputs then buttons, wrapping on small screens */
+.pp-form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+.pp-form .pp-form-buttons {
+	display: inline-flex;
+	gap: 4px;
+}
+.pp-form .pp-form-break {
+	flex-basis: 100%;
+	height: 0;
+}
+
+/* Selling price */
+.pp-price-amount {
+	font-size: 1.45em;
+	font-weight: 600;
+}
+.pp-price-base {
+	opacity: 0.75;
+	margin-left: 3px;
+}
+.pp-price-detail {
+	font-size: 0.9em;
+	opacity: 0.7;
+	margin-top: 2px;
+}
+
+/* Quantities */
+.pp-qty {
+	display: inline-block;
+	min-width: 3em;
+	text-align: center;
+	font-size: 0.95em;
+}
+.pp-muted {
+	opacity: 0.6;
+}

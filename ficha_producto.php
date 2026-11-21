@@ -127,6 +127,11 @@ if ($cancel) {
 	$action = '';
 }
 
+// Changes only by POST (its CSRF token is always checked by main.inc.php), never by a link, whatever the CSRF setup
+if (preg_match('/^(set|add)/', $action) && (empty($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST')) {
+	accessforbidden();
+}
+
 $searchresult = null;
 if (empty($reshook) && $search !== '' && $action == '') {
 	$searchresult = productplus_search_products($db, $search, 100);
@@ -464,30 +469,41 @@ $title = $langs->trans('ProductPlusCardTitle');
 if ($object->id > 0) {
 	$title = $object->ref.' - '.$title;
 }
-llxHeader('', $title, '', '', 0, 0, '', '', '', 'mod-productplus page-ficha_producto');
+llxHeader('', $title, '', '', 0, 0, '', array('/productplus/css/productplus.css'), '', 'mod-productplus page-ficha_producto');
 
-print load_fiche_titre($langs->trans('ProductPlusCardTitle'), '', 'product');
-
-// Search box: always on top to jump to the next product (a scanner types the barcode and Enter)
+// Search on the right of the title: always there to jump to the next product (a scanner types the barcode and Enter)
 $editing = (strpos($action, 'edit') === 0 || $action == 'createsupplierprice');
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" class="productplus-search">';
-print '<div class="inline-block valignmiddle marginbottomonly">';
-print img_picto('', 'search', 'class="pictofixedwidth"');
-print '<input type="text" name="search" class="minwidth300 maxwidth500 widthcentpercentminusx" value="'.dol_escape_htmltag($searchresult !== null ? $search : '').'"';
-print ' placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusSearchPlaceholder')).'" autocomplete="off" spellcheck="false"'.($editing ? '' : ' autofocus').'>';
-print ' <input type="submit" class="button smallpaddingimp" value="'.dol_escape_htmltag($langs->trans('Search')).'">';
-print '</div>';
-print '<div class="opacitymedium small">'.$langs->trans('ProductPlusSearchHelp').'</div>';
-print '</form>';
-print '<br>';
+$searchform = '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" class="pp-search">';
+$searchform .= '<span class="pp-search-field">';
+$searchform .= '<span class="fa fa-search pp-search-icon"></span>';
+$searchform .= '<input type="search" name="search" class="pp-search-input" value="'.dol_escape_htmltag($searchresult !== null ? $search : '').'"';
+$searchform .= ' placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusSearchPlaceholder')).'" title="'.dol_escape_htmltag($langs->trans('ProductPlusSearchHelp')).'"';
+$searchform .= ' autocomplete="off" spellcheck="false"'.($editing ? '' : ' autofocus').'>';
+$searchform .= '</span>';
+$searchform .= '<input type="submit" class="button smallpaddingimp nomargintop nomarginbottom hideonsmartphoneimp" value="'.dol_escape_htmltag($langs->trans('Search')).'">';
+$searchform .= '</form>';
+print load_fiche_titre($langs->trans('ProductPlusCardTitle'), $searchform, 'product');
+
+// Nothing loaded yet: invite to search
+if ($searchresult === null && empty($object->id)) {
+	print '<div class="pp-empty">';
+	print '<div class="pp-empty-icon"><span class="fa fa-barcode"></span></div>';
+	print '<div class="pp-empty-title">'.$langs->trans('ProductPlusEmptyTitle').'</div>';
+	print '<div class="opacitymedium">'.$langs->trans('ProductPlusSearchHelp').'</div>';
+	print '</div>';
+}
 
 // List of matches when the search is not unique
 if ($searchresult !== null) {
 	$rows = $searchresult['rows'];
 	if (!count($rows)) {
-		print '<div class="warning">'.$langs->trans('ProductPlusNoResult', dolPrintHTML($search)).'</div>';
+		print '<div class="pp-empty">';
+		print '<div class="pp-empty-icon"><span class="fa fa-search"></span></div>';
+		print '<div class="pp-empty-title">'.$langs->trans('ProductPlusNoResult', dolPrintHTML($search)).'</div>';
+		print '<div class="opacitymedium">'.$langs->trans('ProductPlusSearchHelp').'</div>';
+		print '</div>';
 	} else {
-		print '<div class="opacitymedium">'.$langs->trans('ProductPlusResults', count($rows), dolPrintHTML($search)).'</div>';
+		print productplus_section($langs->trans('ProductPlusResults', count($rows), dolPrintHTML($search)), 'fa-list');
 		if ($searchresult['more']) {
 			print '<div class="warning">'.$langs->trans('ProductPlusTooManyResults', count($rows)).'</div>';
 		}
@@ -497,11 +513,11 @@ if ($searchresult !== null) {
 		print '<th>'.$langs->trans('Ref').'</th>';
 		print '<th>'.$langs->trans('Label').'</th>';
 		if ($usebarcode) {
-			print '<th>'.$langs->trans('BarcodeValue').'</th>';
+			print '<th>'.$langs->trans('ProductPlusBarcode').'</th>';
 		}
 		print '<th class="right">'.$langs->trans('SellingPrice').'</th>';
 		if ($usestock) {
-			print '<th class="right">'.$langs->trans('PhysicalStock').'</th>';
+			print '<th class="center">'.$langs->trans('PhysicalStock').'</th>';
 		}
 		print '</tr>';
 		foreach ($rows as $row) {
@@ -510,12 +526,12 @@ if ($searchresult !== null) {
 			print '<td class="nowraponall"><a href="'.dol_escape_htmltag($url).'">'.img_picto('', ($row->fk_product_type == Product::TYPE_SERVICE ? 'service' : 'product'), 'class="pictofixedwidth"').dolPrintHTML($row->ref).'</a></td>';
 			print '<td class="tdoverflowmax300" title="'.dol_escape_htmltag($row->label).'"><a href="'.dol_escape_htmltag($url).'">'.dolPrintHTML($row->label).'</a></td>';
 			if ($usebarcode) {
-				print '<td class="nowraponall">'.dolPrintHTML((string) $row->barcode).'</td>';
+				print '<td class="nowraponall"><span class="opacitymedium">'.dolPrintHTML((string) $row->barcode).'</span></td>';
 			}
 			$showprice = ($row->price_base_type == 'TTC' ? $row->price_ttc : $row->price);
-			print '<td class="right nowraponall"><span class="amount">'.price($showprice, 0, $langs, 0, -1, -1, $conf->currency).'</span> '.$langs->trans($row->price_base_type == 'TTC' ? 'TTC' : 'HT').'</td>';
+			print '<td class="right nowraponall"><span class="amount">'.price($showprice, 0, $langs, 0, -1, -1, $conf->currency).'</span> <span class="opacitymedium small">'.$langs->trans($row->price_base_type == 'TTC' ? 'TTC' : 'HT').'</span></td>';
 			if ($usestock) {
-				print '<td class="right">'.productplus_qty($row->stock).'</td>';
+				print '<td class="center">'.($row->fk_product_type == Product::TYPE_SERVICE ? '' : productplus_qty_badge($row->stock)).'</td>';
 			}
 			print '</tr>';
 		}
@@ -525,34 +541,43 @@ if ($searchresult !== null) {
 }
 
 if ($object->id > 0) {
-	print dol_get_fiche_head(array(), '', '', -1);
+	$head = array(array($selfurl, $langs->trans('ProductPlusCardTitle'), 'card'));
+	print dol_get_fiche_head($head, 'card', $langs->trans('Product'), -1, $object->picto);
 
-	$morehtmlright = '<a class="butAction smallpaddingimp" href="'.DOL_URL_ROOT.'/product/card.php?id='.((int) $object->id).'">'.img_picto('', 'product', 'class="pictofixedwidth"').$langs->trans('ProductPlusFullCard').'</a>';
-	dol_banner_tab($object, 'id', '', 1, 'rowid', 'ref', '', '', 0, '', '', 0, $morehtmlright);
+	// Native place of "Back to list": top right, next to the previous/next arrows
+	$linkfullcard = '<a href="'.DOL_URL_ROOT.'/product/card.php?id='.((int) $object->id).'" title="'.dol_escape_htmltag($langs->trans('ProductPlusFullCardHelp')).'">';
+	$linkfullcard .= img_picto('', 'fa-external-link-alt', 'class="pictofixedwidth"').$langs->trans('ProductPlusFullCard').'</a>';
+	dol_banner_tab($object, 'id', $linkfullcard, 1, 'rowid', 'ref');
 
 	print '<div class="fichecenter">';
+
+	/*
+	 * Left: general data and stock
+	 */
 	print '<div class="fichehalfleft">';
-	print '<div class="underbanner clearboth"></div>';
+
+	print productplus_section($langs->trans('ProductPlusGeneral'), 'fa-info-circle');
 	print '<table class="border tableforfield centpercent">';
 
 	// Ref
-	print '<tr><td class="titlefield">'.productplus_field_label($langs->trans('Ref'), 'editref', $action != 'editref', $object->id).'</td><td>';
+	print '<tr'.($action == 'editref' ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($langs->trans('Ref'), 'editref', $action != 'editref', $object->id).'</td><td>';
 	if ($action == 'editref') {
 		$value = GETPOSTISSET('newref') ? GETPOST('newref', 'alphanohtml') : $object->ref;
 		print productplus_form_start($object->id, 'setref');
-		print '<input type="text" name="newref" class="minwidth200" maxlength="128" value="'.dol_escape_htmltag($value).'" autofocus spellcheck="false">';
+		print '<input type="text" name="newref" class="minwidth150 maxwidth200" maxlength="128" value="'.dol_escape_htmltag($value).'" autofocus spellcheck="false">';
 		print productplus_form_end();
 	} else {
-		print dolPrintHTML($object->ref);
+		print '<strong>'.dolPrintHTML($object->ref).'</strong>';
 	}
 	print '</td></tr>';
 
 	// Label
-	print '<tr><td>'.productplus_field_label($langs->trans('Label'), 'editlabel', $action != 'editlabel', $object->id).'</td><td>';
+	print '<tr'.($action == 'editlabel' ? ' class="pp-editing"' : '').'><td>'.productplus_field_label($langs->trans('Label'), 'editlabel', $action != 'editlabel', $object->id).'</td><td>';
 	if ($action == 'editlabel') {
 		$value = GETPOSTISSET('label') ? GETPOST('label', 'alphanohtml') : $object->label;
 		print productplus_form_start($object->id, 'setlabel');
-		print '<input type="text" name="label" class="minwidth300 widthcentpercentminusx" maxlength="255" value="'.dol_escape_htmltag($value).'" autofocus>';
+		print '<input type="text" name="label" class="minwidth200 widthcentpercentminusx" maxlength="255" value="'.dol_escape_htmltag($value).'" autofocus>';
+		print '<span class="pp-form-break"></span>';
 		print productplus_form_end();
 	} else {
 		print dolPrintHTML($object->label);
@@ -561,7 +586,7 @@ if ($object->id > 0) {
 
 	// Barcode (value and type)
 	if ($usebarcode) {
-		print '<tr><td>'.productplus_field_label($langs->trans('BarcodeValue'), 'editbarcode', $action != 'editbarcode', $object->id).'</td><td>';
+		print '<tr'.($action == 'editbarcode' ? ' class="pp-editing"' : '').'><td>'.productplus_field_label($langs->trans('ProductPlusBarcode'), 'editbarcode', $action != 'editbarcode', $object->id).'</td><td>';
 		if ($action == 'editbarcode') {
 			$formbarcode = new FormBarCode($db);
 			$value = GETPOSTISSET('barcode') ? GETPOST('barcode', 'alphanohtml') : $object->barcode;
@@ -570,37 +595,42 @@ if ($object->id > 0) {
 				$fk_barcode_type = getDolGlobalInt('PRODUIT_DEFAULT_BARCODE_TYPE');
 			}
 			print productplus_form_start($object->id, 'setbarcode');
-			print '<input type="text" name="barcode" class="minwidth200" maxlength="180" value="'.dol_escape_htmltag((string) $value).'" autofocus spellcheck="false"> ';
+			print img_picto('', 'barcode', 'class="pictofixedwidth"').'<input type="text" name="barcode" class="minwidth150 maxwidth200" maxlength="180" value="'.dol_escape_htmltag((string) $value).'" autofocus spellcheck="false">';
 			print $formbarcode->selectBarcodeType($fk_barcode_type, 'fk_barcode_type', 1);
+			print '<span class="pp-form-break"></span>';
 			print productplus_form_end();
-		} else {
-			print dolPrintHTML((string) $object->barcode);
-			if ($object->barcode) {
-				$object->fetchBarCode();
-				if ($object->barcode_type_label) {
-					print ' <span class="opacitymedium">('.dolPrintHTML($object->barcode_type_label).')</span>';
-				}
+		} elseif ($object->barcode) {
+			print img_picto('', 'barcode', 'class="pictofixedwidth opacitymedium"').dolPrintHTML((string) $object->barcode);
+			$object->fetchBarCode();
+			if ($object->barcode_type_label) {
+				print ' <span class="badge badge-secondary">'.dolPrintHTML($object->barcode_type_label).'</span>';
 			}
+		} else {
+			print '<span class="pp-muted">'.$langs->trans('ProductPlusNotSet').'</span>';
 		}
 		print '</td></tr>';
 	}
 
 	// Description
-	print '<tr><td class="tdtop">'.productplus_field_label($langs->trans('Description'), 'editdesc', $action != 'editdesc', $object->id).'</td><td>';
+	print '<tr'.($action == 'editdesc' ? ' class="pp-editing"' : '').'><td class="tdtop">'.productplus_field_label($langs->trans('Description'), 'editdesc', $action != 'editdesc', $object->id).'</td><td>';
 	if ($action == 'editdesc') {
 		$value = GETPOSTISSET('desc') ? GETPOST('desc', 'restricthtml') : $object->description;
 		print productplus_form_start($object->id, 'setdesc');
-		$doleditor = new DolEditor('desc', $value, '', 160, 'dolibarr_details', '', false, true, getDolGlobalInt('FCKEDITOR_ENABLE_PRODUCTDESC'), ROWS_4, '90%');
+		print '<div class="centpercent">';
+		$doleditor = new DolEditor('desc', $value, '', 160, 'dolibarr_details', '', false, true, getDolGlobalInt('FCKEDITOR_ENABLE_PRODUCTDESC'), ROWS_4, '100%');
 		$doleditor->Create();
-		print '<div class="paddingtop">'.productplus_form_end().'</div>';
-	} else {
+		print '</div>';
+		print productplus_form_end();
+	} elseif (trim((string) $object->description) !== '') {
 		print '<div class="longmessagecut">'.dolPrintHTML($object->description).'</div>';
+	} else {
+		print '<span class="pp-muted">'.$langs->trans('ProductPlusNotSet').'</span>';
 	}
 	print '</td></tr>';
 
 	// Categories
 	if ($usecategories) {
-		print '<tr><td class="tdtop">'.productplus_field_label($langs->trans('Categories'), 'editcategories', $action != 'editcategories', $object->id).'</td><td>';
+		print '<tr'.($action == 'editcategories' ? ' class="pp-editing"' : '').'><td class="tdtop">'.productplus_field_label($langs->trans('Categories'), 'editcategories', $action != 'editcategories', $object->id).'</td><td>';
 		if ($action == 'editcategories') {
 			$cate_arbo = $form->select_all_categories(Categorie::TYPE_PRODUCT, '', 'parent', 64, 0, 3);
 			$arrayselected = array();
@@ -616,163 +646,19 @@ if ($object->id > 0) {
 				}
 			}
 			print productplus_form_start($object->id, 'setcategories');
-			print img_picto('', 'category', 'class="pictofixedwidth"').$form->multiselectarray('categories', $cate_arbo, $arrayselected, 0, 0, 'minwidth300 widthcentpercentminusx', 0, 0);
-			print '<div class="paddingtop">'.productplus_form_end().'</div>';
+			print '<div class="centpercent">'.img_picto('', 'category', 'class="pictofixedwidth"').$form->multiselectarray('categories', $cate_arbo, $arrayselected, 0, 0, 'minwidth200 widthcentpercentminusx', 0, 0).'</div>';
+			print productplus_form_end();
 		} else {
-			print $form->showCategories($object->id, Categorie::TYPE_PRODUCT, 1);
+			$cathtml = $form->showCategories($object->id, Categorie::TYPE_PRODUCT, 1);
+			print (trim(strip_tags($cathtml)) !== '' ? $cathtml : '<span class="pp-muted">'.$langs->trans('ProductPlusNotSet').'</span>');
 		}
 		print '</td></tr>';
 	}
 
 	print '</table>';
-	print '</div>';
-
-	print '<div class="fichehalfright">';
-	print '<div class="underbanner clearboth"></div>';
-
-	// Selling price
-	print '<table class="border tableforfield centpercent">';
-	$levels = ($multiprices ? range(1, $nblevels) : array(0));
-	foreach ($levels as $lvl) {
-		if ($lvl > 0) {
-			$price = $object->multiprices[$lvl] ?? 0;
-			$pricettc = $object->multiprices_ttc[$lvl] ?? 0;
-			$pricebase = $object->multiprices_base_type[$lvl] ?? 'HT';
-			$vattx = $object->multiprices_tva_tx[$lvl] ?? $object->tva_tx;
-			$label = $langs->trans('ProductPlusSellingPriceLevel', $lvl);
-			if (getDolGlobalString('PRODUIT_MULTIPRICES_LABEL'.$lvl)) {
-				$label .= ' - '.dolPrintHTML($langs->trans(getDolGlobalString('PRODUIT_MULTIPRICES_LABEL'.$lvl)));
-			}
-		} else {
-			$price = $object->price;
-			$pricettc = $object->price_ttc;
-			$pricebase = $object->price_base_type;
-			$vattx = $object->tva_tx;
-			$label = $langs->trans('SellingPrice');
-		}
-		$pricebase = ($pricebase == 'TTC' ? 'TTC' : 'HT');
-		$editthis = ($action == 'editprice' && $level == $lvl);
-
-		print '<tr><td class="titlefield">'.productplus_field_label($label, 'editprice', !$editthis, $object->id, '&level='.$lvl).'</td><td>';
-		if ($editthis) {
-			$value = GETPOSTISSET('price') ? GETPOST('price', 'alpha') : price($pricebase == 'TTC' ? $pricettc : $price);
-			$base = GETPOSTISSET('price_base_type') ? GETPOST('price_base_type', 'aZ09') : $pricebase;
-			$vatselected = GETPOSTISSET('tva_tx') ? GETPOST('tva_tx', 'alpha') : ($lvl == 0 && $object->default_vat_code ? $object->tva_tx.' ('.$object->default_vat_code.')' : $vattx);
-			print productplus_form_start($object->id, 'setprice', array('level' => $lvl));
-			print '<input type="text" name="price" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus> ';
-			print $form->selectPriceBaseType($base, 'price_base_type');
-			print ' '.$langs->trans('VAT').' '.$form->load_tva('tva_tx', $vatselected, $mysoc, null, $object->id, $object->tva_npr, $object->type, false, 1);
-			print '<br>'.productplus_form_end();
-		} else {
-			print '<span class="amount">'.price($pricebase == 'TTC' ? $pricettc : $price, 0, $langs, 0, -1, -1, $conf->currency).'</span> '.$langs->trans($pricebase);
-			print ' <span class="opacitymedium">('.price($pricebase == 'TTC' ? $price : $pricettc, 0, $langs, 0, -1, -1, $conf->currency).' '.$langs->trans($pricebase == 'TTC' ? 'HT' : 'TTC').')</span>';
-			print ' <span class="opacitymedium">- '.$langs->trans('VAT').' '.vatrate((string) $vattx, true).'</span>';
-		}
-		print '</td></tr>';
-	}
-	print '</table>';
-
-	// Purchase price
-	print '<br>';
-	print load_fiche_titre($langs->trans('ProductPlusPurchasePrice'), '', 'supplier', 0, '', 'margintoponly');
-	print '<table class="border tableforfield centpercent">';
-	print '<tr><td class="titlefield">'.productplus_field_label($langs->trans('ProductPlusCostPrice'), 'editcostprice', $action != 'editcostprice', $object->id).'</td><td>';
-	if ($action == 'editcostprice') {
-		$value = GETPOSTISSET('cost_price') ? GETPOST('cost_price', 'alpha') : ($object->cost_price !== null && $object->cost_price !== '' ? price($object->cost_price) : '');
-		print productplus_form_start($object->id, 'setcostprice');
-		print '<input type="text" name="cost_price" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus> '.$langs->trans('HT');
-		print productplus_form_end();
-	} else {
-		print ($object->cost_price !== null && $object->cost_price !== '' ? '<span class="amount">'.price($object->cost_price, 0, $langs, 0, -1, -1, $conf->currency).'</span> '.$langs->trans('HT') : '');
-	}
-	print '</td></tr>';
-	print '<tr><td>'.$form->textwithpicto($langs->trans('PMPValue'), $langs->trans('ProductPlusPmpHelp')).'</td><td>';
-	print '<span class="amount">'.price($object->pmp, 0, $langs, 0, -1, -1, $conf->currency).'</span> '.$langs->trans('HT');
-	print '</td></tr>';
-	print '</table>';
-
-	if ($usesuppliers) {
-		$pfstatic = new ProductFournisseur($db);
-		$supplierprices = $pfstatic->list_product_fournisseur_price($object->id, 's.nom', 'ASC');
-		$supplierprices = is_array($supplierprices) ? $supplierprices : array();
-
-		print '<div class="div-table-responsive-no-min margintoponly">';
-		print '<table class="noborder centpercent">';
-		print '<tr class="liste_titre">';
-		print '<th>'.$langs->trans('Supplier').'</th>';
-		print '<th>'.$langs->trans('RefSupplier').'</th>';
-		print '<th class="right">'.$langs->trans('QtyMin').'</th>';
-		print '<th class="right">'.$langs->trans('ProductPlusUnitPrice').'</th>';
-		print '<th class="right"></th>';
-		print '</tr>';
-
-		if (!count($supplierprices) && $action != 'createsupplierprice') {
-			print '<tr class="oddeven"><td colspan="5"><span class="opacitymedium">'.$langs->trans('ProductPlusNoSupplierPrice').'</span></td></tr>';
-		}
-
-		foreach ($supplierprices as $sp) {
-			$editthis = ($action == 'editsupplierprice' && $pfpid == (int) $sp->product_fourn_price_id);
-			$foreign = ($usemulticurrency && !empty($sp->fourn_multicurrency_code) && $sp->fourn_multicurrency_code != $conf->currency);
-			$supplierstatic = new Fournisseur($db);
-			$supplierstatic->id = $sp->fourn_id;
-			$supplierstatic->name = $sp->fourn_name;
-			$supplierstatic->fournisseur = 1;
-
-			print '<tr class="oddeven">';
-			print '<td class="tdoverflowmax200">'.$supplierstatic->getNomUrl(1, 'supplier').'</td>';
-			print '<td class="tdoverflowmax150" title="'.dol_escape_htmltag($sp->ref_supplier).'">'.dolPrintHTML($sp->ref_supplier).'</td>';
-			print '<td class="right">'.productplus_qty($sp->fourn_qty).'</td>';
-			if ($editthis) {
-				$current = ($foreign ? $sp->fourn_multicurrency_unitprice : $sp->fourn_unitprice);
-				$value = GETPOSTISSET('unitprice') ? GETPOST('unitprice', 'alpha') : price($current);
-				print '<td class="right" colspan="2">';
-				print productplus_form_start($object->id, 'setsupplierprice', array('pfpid' => (int) $sp->product_fourn_price_id));
-				print '<input type="text" name="unitprice" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus> ';
-				print dolPrintHTML($foreign ? $sp->fourn_multicurrency_code : $conf->currency);
-				print productplus_form_end();
-				print '</td>';
-			} else {
-				print '<td class="right nowraponall"><span class="amount">'.price($sp->fourn_unitprice, 0, $langs, 0, -1, -1, $conf->currency).'</span>';
-				if ($foreign) {
-					print '<br><span class="opacitymedium">'.price($sp->fourn_multicurrency_unitprice, 0, $langs, 0, -1, -1, $sp->fourn_multicurrency_code).'</span>';
-				}
-				print '</td>';
-				print '<td class="right nowraponall">';
-				$url = $selfurl.'&action=editsupplierprice&pfpid='.((int) $sp->product_fourn_price_id).'&token='.newToken();
-				print '<a class="editfielda" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
-				print '</td>';
-			}
-			print '</tr>';
-		}
-
-		if ($action == 'createsupplierprice') {
-			print '<tr class="oddeven"><td colspan="5">';
-			print productplus_form_start($object->id, 'addsupplierprice');
-			print '<div class="inline-block marginrightonly marginbottomonly">'.img_picto('', 'company', 'class="pictofixedwidth"').$form->select_company(GETPOSTINT('socid'), 'socid', '(fournisseur:=:1) AND (status:=:1)', $langs->transnoentitiesnoconv('Supplier'), 0, 0, array(), 0, 'minwidth200').'</div>';
-			print '<div class="inline-block marginrightonly marginbottomonly"><input type="text" name="ref_fourn" class="width150" maxlength="128" value="'.dol_escape_htmltag(GETPOST('ref_fourn', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('RefSupplier')).'"></div>';
-			print '<div class="inline-block marginrightonly marginbottomonly"><input type="text" name="unitprice" class="width100 right" value="'.dol_escape_htmltag(GETPOST('unitprice', 'alpha')).'" placeholder="'.dol_escape_htmltag($langs->trans('UnitPrice')).'"> '.dolPrintHTML($conf->currency).' '.$langs->trans('HT').'</div>';
-			print '<div class="opacitymedium small">'.$langs->trans('ProductPlusAddSupplierPriceHelp').'</div>';
-			print '<div class="paddingtop">'.productplus_form_end().'</div>';
-			print '</td></tr>';
-		}
-
-		print '</table>';
-		print '</div>';
-
-		if ($action != 'createsupplierprice') {
-			print '<div class="right margintoponly"><a class="butAction smallpaddingimp" href="'.dol_escape_htmltag($selfurl.'&action=createsupplierprice&token='.newToken()).'">'.img_picto('', 'add', 'class="pictofixedwidth"').$langs->trans('ProductPlusAddSupplierPrice').'</a></div>';
-		}
-	}
-
-	print '</div>';
-	print '</div>';
-	print '<div class="clearboth"></div>';
 
 	// Stock by warehouse
 	if ($usestock && ($object->isProduct() || getDolGlobalString('STOCK_SUPPORTS_SERVICES'))) {
-		print '<br>';
-		print load_fiche_titre($langs->trans('ProductPlusStockByWarehouse'), '', 'stock', 0, '', 'margintoponly');
-
 		$hasbatch = $object->hasbatch();
 		$canedit = !$hasbatch;
 
@@ -785,6 +671,9 @@ if ($object->id > 0) {
 		$sql .= $db->order('e.ref', 'ASC');
 		$warehouses = productplus_fetch_rows($db, $sql);
 
+		$linkstock = '<a class="smallpaddingimp" href="'.DOL_URL_ROOT.'/product/stock/product.php?id='.((int) $object->id).'" title="'.dol_escape_htmltag($langs->trans('ProductPlusGoToStock')).'">'.img_picto($langs->trans('ProductPlusGoToStock'), 'fa-external-link-alt').'</a>';
+		print productplus_section($form->textwithpicto($langs->trans('ProductPlusStockByWarehouse'), $langs->trans('ProductPlusStockHelp')), 'stock', $linkstock);
+
 		if ($hasbatch) {
 			print '<div class="info">'.$langs->trans('ProductPlusStockBatch').' <a href="'.DOL_URL_ROOT.'/product/stock/product.php?id='.((int) $object->id).'">'.$langs->trans('ProductPlusGoToStock').'</a></div>';
 		}
@@ -793,8 +682,8 @@ if ($object->id > 0) {
 		print '<table class="noborder centpercent">';
 		print '<tr class="liste_titre">';
 		print '<th>'.$langs->trans('Warehouse').'</th>';
-		print '<th class="right">'.$langs->trans('PhysicalStock').'</th>';
-		print '<th class="right"></th>';
+		print '<th class="center width100">'.$langs->trans('PhysicalStock').'</th>';
+		print '<th class="right width25"></th>';
 		print '</tr>';
 
 		if (!count($warehouses)) {
@@ -815,38 +704,192 @@ if ($object->id > 0) {
 			$editthis = ($action == 'editstock' && $whid == (int) $wh->rowid && $canedit);
 
 			print '<tr class="oddeven">';
-			print '<td class="tdoverflowmax300">'.$whstatic->getNomUrl(1);
+			print '<td class="tdoverflowmax250">'.$whstatic->getNomUrl(1);
 			if ($wh->lieu) {
-				print ' <span class="opacitymedium">- '.dolPrintHTML($wh->lieu).'</span>';
+				print '<br><span class="opacitymedium small">'.dolPrintHTML($wh->lieu).'</span>';
 			}
 			print '</td>';
+			print '<td class="center">'.productplus_qty_badge($qty).'</td>';
+			print '<td class="right nowraponall">';
+			if ($canedit && !$editthis) {
+				$url = $selfurl.'&action=editstock&whid='.((int) $wh->rowid).'&token='.newToken();
+				print '<a class="editfielda" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
+			}
+			print '</td>';
+			print '</tr>';
+
+			// Edit form on its own full row under the warehouse
 			if ($editthis) {
 				$value = GETPOSTISSET('stockqty') ? GETPOST('stockqty', 'alpha') : productplus_qty($qty);
-				print '<td class="right" colspan="2">';
+				print '<tr class="pp-editing"><td colspan="3">';
 				print productplus_form_start($object->id, 'setstock', array('whid' => (int) $wh->rowid));
-				print '<input type="text" name="stockqty" class="width75 right" value="'.dol_escape_htmltag((string) $value).'" autofocus title="'.dol_escape_htmltag($langs->trans('ProductPlusNewStock')).'"> ';
-				print '<input type="text" name="stocklabel" class="minwidth200" maxlength="255" value="'.dol_escape_htmltag(GETPOST('stocklabel', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusStockCorrectionLabel')).'">';
+				print '<label for="pp-stockqty">'.$langs->trans('ProductPlusNewStock').'</label>';
+				print '<input type="text" id="pp-stockqty" name="stockqty" class="width75 right" value="'.dol_escape_htmltag((string) $value).'" autofocus>';
+				print '<input type="text" name="stocklabel" class="minwidth200 maxwidth300" maxlength="255" value="'.dol_escape_htmltag(GETPOST('stocklabel', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusStockCorrectionLabel')).'" title="'.dol_escape_htmltag($langs->trans('ProductPlusStockReason')).'">';
+				print productplus_form_end();
+				print '</td></tr>';
+			}
+		}
+
+		if (count($warehouses)) {
+			print '<tr class="liste_total"><td>'.$langs->trans('Total').'</td><td class="center"><strong>'.productplus_qty($total).'</strong></td><td></td></tr>';
+		}
+		print '</table>';
+		print '</div>';
+	}
+
+	print '</div>';
+
+	/*
+	 * Right: selling price, purchase price, supplier prices
+	 */
+	print '<div class="fichehalfright">';
+
+	print productplus_section($langs->trans('SellingPrice'), 'fa-tag');
+	print '<table class="border tableforfield centpercent">';
+	$levels = ($multiprices ? range(1, $nblevels) : array(0));
+	foreach ($levels as $lvl) {
+		if ($lvl > 0) {
+			$price = $object->multiprices[$lvl] ?? 0;
+			$pricettc = $object->multiprices_ttc[$lvl] ?? 0;
+			$pricebase = $object->multiprices_base_type[$lvl] ?? 'HT';
+			$vattx = $object->multiprices_tva_tx[$lvl] ?? $object->tva_tx;
+			$label = $langs->trans('ProductPlusSellingPriceLevel', $lvl);
+			if (getDolGlobalString('PRODUIT_MULTIPRICES_LABEL'.$lvl)) {
+				$label .= '<br><span class="opacitymedium small">'.dolPrintHTML($langs->trans(getDolGlobalString('PRODUIT_MULTIPRICES_LABEL'.$lvl))).'</span>';
+			}
+		} else {
+			$price = $object->price;
+			$pricettc = $object->price_ttc;
+			$pricebase = $object->price_base_type;
+			$vattx = $object->tva_tx;
+			$label = $langs->trans('ProductPlusPrice');
+		}
+		$pricebase = ($pricebase == 'TTC' ? 'TTC' : 'HT');
+		$editthis = ($action == 'editprice' && $level == $lvl);
+
+		print '<tr'.($editthis ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($label, 'editprice', !$editthis, $object->id, '&level='.$lvl).'</td><td>';
+		if ($editthis) {
+			$value = GETPOSTISSET('price') ? GETPOST('price', 'alpha') : price($pricebase == 'TTC' ? $pricettc : $price);
+			$base = GETPOSTISSET('price_base_type') ? GETPOST('price_base_type', 'aZ09') : $pricebase;
+			$vatselected = GETPOSTISSET('tva_tx') ? GETPOST('tva_tx', 'alpha') : ($lvl == 0 && $object->default_vat_code ? $object->tva_tx.' ('.$object->default_vat_code.')' : $vattx);
+			print productplus_form_start($object->id, 'setprice', array('level' => $lvl));
+			print '<input type="text" name="price" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus>';
+			print $form->selectPriceBaseType($base, 'price_base_type');
+			print '<span class="nowraponall">'.$langs->trans('VAT').' '.$form->load_tva('tva_tx', $vatselected, $mysoc, null, $object->id, $object->tva_npr, $object->type, false, 1).'</span>';
+			print '<span class="pp-form-break"></span>';
+			print productplus_form_end();
+		} else {
+			print '<div><span class="pp-price-amount amount">'.price($pricebase == 'TTC' ? $pricettc : $price, 0, $langs, 0, -1, -1, $conf->currency).'</span>';
+			print '<span class="pp-price-base">'.$langs->trans($pricebase).'</span></div>';
+			print '<div class="pp-price-detail">'.price($pricebase == 'TTC' ? $price : $pricettc, 0, $langs, 0, -1, -1, $conf->currency).' '.$langs->trans($pricebase == 'TTC' ? 'HT' : 'TTC');
+			print ' &middot; '.$langs->trans('VAT').' '.vatrate((string) $vattx, true).'</div>';
+		}
+		print '</td></tr>';
+	}
+	print '</table>';
+
+	// Purchase price
+	print productplus_section($langs->trans('ProductPlusPurchasePrice'), 'fa-shopping-cart');
+	print '<table class="border tableforfield centpercent">';
+	print '<tr'.($action == 'editcostprice' ? ' class="pp-editing"' : '').'><td class="titlefield">'.productplus_field_label($langs->trans('ProductPlusCostPrice'), 'editcostprice', $action != 'editcostprice', $object->id).'</td><td>';
+	if ($action == 'editcostprice') {
+		$value = GETPOSTISSET('cost_price') ? GETPOST('cost_price', 'alpha') : ($object->cost_price !== null && $object->cost_price !== '' ? price($object->cost_price) : '');
+		print productplus_form_start($object->id, 'setcostprice');
+		print '<input type="text" name="cost_price" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus><span>'.$langs->trans('HT').'</span>';
+		print productplus_form_end();
+	} elseif ($object->cost_price !== null && $object->cost_price !== '') {
+		print '<span class="amount">'.price($object->cost_price, 0, $langs, 0, -1, -1, $conf->currency).'</span> <span class="opacitymedium">'.$langs->trans('HT').'</span>';
+	} else {
+		print '<span class="pp-muted">'.$langs->trans('ProductPlusNotSet').'</span>';
+	}
+	print '</td></tr>';
+	print '<tr><td>'.$form->textwithpicto($langs->trans('ProductPlusPmp'), $langs->trans('PMPValue').': '.$langs->trans('ProductPlusPmpHelp')).'</td><td>';
+	print '<span class="amount">'.price($object->pmp, 0, $langs, 0, -1, -1, $conf->currency).'</span> <span class="opacitymedium">'.$langs->trans('HT').'</span>';
+	print '</td></tr>';
+	print '</table>';
+
+	// Supplier prices
+	if ($usesuppliers) {
+		$pfstatic = new ProductFournisseur($db);
+		$supplierprices = $pfstatic->list_product_fournisseur_price($object->id, 's.nom', 'ASC');
+		$supplierprices = is_array($supplierprices) ? $supplierprices : array();
+
+		$addbutton = dolGetButtonTitle($langs->trans('ProductPlusAddSupplierPrice'), '', 'fa fa-plus-circle', $selfurl.'&action=createsupplierprice&token='.newToken(), '', ($action == 'createsupplierprice' ? -1 : 1));
+		print productplus_section($langs->trans('ProductPlusSupplierPrices'), 'supplier', $addbutton);
+
+		print '<div class="div-table-responsive-no-min">';
+		print '<table class="noborder centpercent">';
+		print '<tr class="liste_titre">';
+		print '<th>'.$langs->trans('Supplier').'</th>';
+		print '<th class="nowraponall" title="'.dol_escape_htmltag($langs->trans('RefSupplier')).'">'.$langs->trans('Ref').'</th>';
+		print '<th class="right nowraponall" title="'.dol_escape_htmltag($langs->trans('QtyMin')).'">'.$langs->trans('ProductPlusQtyMinShort').'</th>';
+		print '<th class="right nowraponall" title="'.dol_escape_htmltag($langs->trans('ProductPlusUnitPrice')).'">'.$langs->trans('ProductPlusUnitPriceShort').'</th>';
+		print '<th class="right width25"></th>';
+		print '</tr>';
+
+		if (!count($supplierprices) && $action != 'createsupplierprice') {
+			print '<tr class="oddeven"><td colspan="5"><span class="opacitymedium">'.$langs->trans('ProductPlusNoSupplierPrice').'</span></td></tr>';
+		}
+
+		foreach ($supplierprices as $sp) {
+			$editthis = ($action == 'editsupplierprice' && $pfpid == (int) $sp->product_fourn_price_id);
+			$foreign = ($usemulticurrency && !empty($sp->fourn_multicurrency_code) && $sp->fourn_multicurrency_code != $conf->currency);
+			$supplierstatic = new Fournisseur($db);
+			$supplierstatic->id = $sp->fourn_id;
+			$supplierstatic->name = $sp->fourn_name;
+			$supplierstatic->fournisseur = 1;
+
+			print '<tr class="oddeven'.($editthis ? ' pp-editing' : '').'">';
+			print '<td class="tdoverflowmax200">'.$supplierstatic->getNomUrl(1, 'supplier').'</td>';
+			print '<td class="tdoverflowmax100 small" title="'.dol_escape_htmltag($sp->ref_supplier).'">'.dolPrintHTML($sp->ref_supplier).'</td>';
+			print '<td class="right">'.productplus_qty($sp->fourn_qty).'</td>';
+			if ($editthis) {
+				$current = ($foreign ? $sp->fourn_multicurrency_unitprice : $sp->fourn_unitprice);
+				$value = GETPOSTISSET('unitprice') ? GETPOST('unitprice', 'alpha') : price($current);
+				print '<td class="right" colspan="2">';
+				print productplus_form_start($object->id, 'setsupplierprice', array('pfpid' => (int) $sp->product_fourn_price_id));
+				print '<input type="text" name="unitprice" class="width75 right" value="'.dol_escape_htmltag((string) $value).'" autofocus>';
+				print '<span>'.dolPrintHTML($foreign ? $sp->fourn_multicurrency_code : $conf->currency).'</span>';
+				print '<span class="pp-form-break"></span>';
 				print productplus_form_end();
 				print '</td>';
 			} else {
-				print '<td class="right">'.productplus_qty($qty).'</td>';
-				print '<td class="right nowraponall">';
-				if ($canedit) {
-					$url = $selfurl.'&action=editstock&whid='.((int) $wh->rowid).'&token='.newToken();
-					print '<a class="editfielda" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
+				print '<td class="right nowraponall"><span class="amount">'.price($sp->fourn_unitprice, 0, $langs, 0, -1, -1, $conf->currency).'</span>';
+				if ($foreign) {
+					print '<br><span class="opacitymedium small">'.price($sp->fourn_multicurrency_unitprice, 0, $langs, 0, -1, -1, $sp->fourn_multicurrency_code).'</span>';
 				}
+				print '</td>';
+				print '<td class="right nowraponall">';
+				$url = $selfurl.'&action=editsupplierprice&pfpid='.((int) $sp->product_fourn_price_id).'&token='.newToken();
+				print '<a class="editfielda" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
 				print '</td>';
 			}
 			print '</tr>';
 		}
 
-		if (count($warehouses)) {
-			print '<tr class="liste_total"><td>'.$langs->trans('Total').'</td><td class="right">'.productplus_qty($total).'</td><td></td></tr>';
+		if ($action == 'createsupplierprice') {
+			print '<tr class="oddeven pp-editing"><td colspan="5">';
+			print productplus_form_start($object->id, 'addsupplierprice');
+			print img_picto('', 'company', 'class="pictofixedwidth"').$form->select_company(GETPOSTINT('socid'), 'socid', '(fournisseur:=:1) AND (status:=:1)', $langs->transnoentitiesnoconv('Supplier'), 0, 0, array(), 0, 'minwidth200');
+			print '<span class="pp-form-break"></span>';
+			print '<input type="text" name="ref_fourn" class="width150" maxlength="128" value="'.dol_escape_htmltag(GETPOST('ref_fourn', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('RefSupplier')).'">';
+			print '<input type="text" name="unitprice" class="width125 right" value="'.dol_escape_htmltag(GETPOST('unitprice', 'alpha')).'" placeholder="'.dol_escape_htmltag($langs->trans('UnitPrice')).'">';
+			print '<span>'.dolPrintHTML($conf->currency).' '.$langs->trans('HT').'</span>';
+			print '<span class="pp-form-break"></span>';
+			print '<span class="opacitymedium small">'.$langs->trans('ProductPlusAddSupplierPriceHelp').'</span>';
+			print '<span class="pp-form-break"></span>';
+			print productplus_form_end();
+			print '</td></tr>';
 		}
+
 		print '</table>';
 		print '</div>';
-		print '<div class="opacitymedium small">'.$langs->trans('ProductPlusStockHelp').'</div>';
 	}
+
+	print '</div>';
+	print '</div>';
+	print '<div class="clearboth"></div>';
 
 	print dol_get_fiche_end();
 }
