@@ -1,0 +1,56 @@
+# Copyright (C) 2026 Edgar Bustamante <ebustamantep@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+#
+# Módulo
+#
+ModuleProductPlusName = Ficha Producto
+ModuleProductPlusDesc = Ficha de producto rápida para los administradores: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
+Module958800Name = Ficha Producto
+Module958800Desc = Ficha de producto rápida para los administradores: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
+ProductPlusDescription = Ficha de producto rápida para los administradores: buscar por ref, etiqueta o código de barras y modificar los datos principales del producto
+ProductPlusDescriptionLong = <p>Menú <strong>Productos &gt; Ficha Producto</strong>, solo para administradores.</p><p>Escriba o escanee la ref, la etiqueta o el código de barras del producto. En la ficha cada dato tiene su lápiz <em>Modificar</em>: ref, etiqueta, código de barras, descripción, categorías, precio de venta, precio de compra (precio de costo y precios de proveedor) y stock por almacén.</p>
+ProductPlusSetup = Ficha Producto
+ProductPlusAbout = Acerca de Ficha Producto
+
+#
+# Menú y ficha
+#
+ProductPlusMenuCard = Ficha Producto
+ProductPlusCardTitle = Ficha Producto
+ProductPlusSearchPlaceholder = Ref, etiqueta o código de barras
+ProductPlusSearchHelp = Escriba o escanee la ref, la etiqueta o el código de barras del producto y pulse Intro.
+ProductPlusNoResult = Ningún producto coincide con «%s».
+ProductPlusResults = %s productos coinciden con «%s». Elija uno.
+ProductPlusTooManyResults = Solo se muestran los %s primeros. Escriba más letras para acotar la búsqueda.
+ProductPlusFullCard = Ficha completa
+ProductPlusErrorBarcodeUsed = El código de barras %s ya lo usa el producto %s.
+
+#
+# Precios
+#
+ProductPlusSellingPriceLevel = Precio de venta (nivel %s)
+ProductPlusPurchasePrice = Precio de compra
+ProductPlusCostPrice = Precio de costo
+ProductPlusPmpHelp = Lo calcula Dolibarr con las entradas de stock (no se puede modificar).
+ProductPlusUnitPrice = Precio unitario sin IVA
+ProductPlusNoSupplierPrice = Sin precios de proveedor.
+ProductPlusAddSupplierPrice = Añadir precio de proveedor
+ProductPlusAddSupplierPriceHelp = Precio para una cantidad mínima de 1, con la tasa de IVA del proveedor. Los demás datos (descuentos, plazo de entrega, cantidad) se fijan en la pestaña Precios de proveedor de la ficha completa.
+
+#
+# Stock
+#
+ProductPlusStockByWarehouse = Stock por almacén
+ProductPlusNewStock = Nuevo stock
+ProductPlusStockCorrectionLabel = Corrección desde la Ficha Producto
+ProductPlusStockCorrected = Stock de %s corregido: %s → %s
+ProductPlusStockUnchanged = El stock no cambió.
+ProductPlusStockBatch = Este producto se gestiona por lotes/números de serie: el stock se corrige lote por lote en su página de stock.
+ProductPlusGoToStock = Ir al stock
+ProductPlusNoWarehouse = No hay almacenes.
+ProductPlusStockHelp = Escriba la cantidad real del almacén: la diferencia se guarda como un movimiento de corrección de stock (el precio medio ponderado no cambia).
