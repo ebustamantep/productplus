@@ -213,7 +213,7 @@ function productplus_field_label($label, $editaction, $showpencil, $id, $morepar
 	$out = '<table class="nobordernopadding centpercent"><tr><td class="nowrap">'.$label.'</td>';
 	if ($showpencil) {
 		$url = $_SERVER['PHP_SELF'].'?id='.((int) $id).'&action='.urlencode($editaction).$moreparam.'&token='.newToken();
-		$out .= '<td class="right"><a class="editfielda reposition" href="'.dolPrintHTMLForAttribute($url).'">'.img_edit($langs->trans('Modify'), 1).'</a></td>';
+		$out .= '<td class="right"><a class="editfielda reposition" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a></td>';
 	}
 	$out .= '</tr></table>';
 
@@ -232,10 +232,10 @@ function productplus_form_start($id, $setaction, $hidden = array())
 {
 	$out = '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.((int) $id).'">';
 	$out .= '<input type="hidden" name="token" value="'.newToken().'">';
-	$out .= '<input type="hidden" name="action" value="'.dolPrintHTMLForAttribute($setaction).'">';
+	$out .= '<input type="hidden" name="action" value="'.dol_escape_htmltag($setaction).'">';
 	$out .= '<input type="hidden" name="id" value="'.((int) $id).'">';
 	foreach ($hidden as $key => $val) {
-		$out .= '<input type="hidden" name="'.dolPrintHTMLForAttribute($key).'" value="'.dolPrintHTMLForAttribute((string) $val).'">';
+		$out .= '<input type="hidden" name="'.dol_escape_htmltag($key).'" value="'.dol_escape_htmltag((string) $val).'">';
 	}
 
 	return $out;
@@ -250,8 +250,8 @@ function productplus_form_end()
 {
 	global $langs;
 
-	$out = ' <input type="submit" class="button smallpaddingimp nomargintop nomarginbottom" name="save" value="'.dolPrintHTMLForAttribute($langs->trans('Save')).'">';
-	$out .= ' <input type="submit" class="button button-cancel smallpaddingimp nomargintop nomarginbottom" name="cancel" value="'.dolPrintHTMLForAttribute($langs->trans('Cancel')).'">';
+	$out = ' <input type="submit" class="button smallpaddingimp nomargintop nomarginbottom" name="save" value="'.dol_escape_htmltag($langs->trans('Save')).'">';
+	$out .= ' <input type="submit" class="button button-cancel smallpaddingimp nomargintop nomarginbottom" name="cancel" value="'.dol_escape_htmltag($langs->trans('Cancel')).'">';
 	$out .= '</form>';
 
 	return $out;

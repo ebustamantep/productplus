@@ -473,9 +473,9 @@ $editing = (strpos($action, 'edit') === 0 || $action == 'createsupplierprice');
 print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" class="productplus-search">';
 print '<div class="inline-block valignmiddle marginbottomonly">';
 print img_picto('', 'search', 'class="pictofixedwidth"');
-print '<input type="text" name="search" class="minwidth300 maxwidth500 widthcentpercentminusx" value="'.dolPrintHTMLForAttribute($searchresult !== null ? $search : '').'"';
-print ' placeholder="'.dolPrintHTMLForAttribute($langs->trans('ProductPlusSearchPlaceholder')).'" autocomplete="off" spellcheck="false"'.($editing ? '' : ' autofocus').'>';
-print ' <input type="submit" class="button smallpaddingimp" value="'.dolPrintHTMLForAttribute($langs->trans('Search')).'">';
+print '<input type="text" name="search" class="minwidth300 maxwidth500 widthcentpercentminusx" value="'.dol_escape_htmltag($searchresult !== null ? $search : '').'"';
+print ' placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusSearchPlaceholder')).'" autocomplete="off" spellcheck="false"'.($editing ? '' : ' autofocus').'>';
+print ' <input type="submit" class="button smallpaddingimp" value="'.dol_escape_htmltag($langs->trans('Search')).'">';
 print '</div>';
 print '<div class="opacitymedium small">'.$langs->trans('ProductPlusSearchHelp').'</div>';
 print '</form>';
@@ -507,8 +507,8 @@ if ($searchresult !== null) {
 		foreach ($rows as $row) {
 			$url = $_SERVER['PHP_SELF'].'?id='.((int) $row->rowid);
 			print '<tr class="oddeven">';
-			print '<td class="nowraponall"><a href="'.dolPrintHTMLForAttribute($url).'">'.img_picto('', ($row->fk_product_type == Product::TYPE_SERVICE ? 'service' : 'product'), 'class="pictofixedwidth"').dolPrintHTML($row->ref).'</a></td>';
-			print '<td class="tdoverflowmax300" title="'.dolPrintHTMLForAttribute($row->label).'"><a href="'.dolPrintHTMLForAttribute($url).'">'.dolPrintHTML($row->label).'</a></td>';
+			print '<td class="nowraponall"><a href="'.dol_escape_htmltag($url).'">'.img_picto('', ($row->fk_product_type == Product::TYPE_SERVICE ? 'service' : 'product'), 'class="pictofixedwidth"').dolPrintHTML($row->ref).'</a></td>';
+			print '<td class="tdoverflowmax300" title="'.dol_escape_htmltag($row->label).'"><a href="'.dol_escape_htmltag($url).'">'.dolPrintHTML($row->label).'</a></td>';
 			if ($usebarcode) {
 				print '<td class="nowraponall">'.dolPrintHTML((string) $row->barcode).'</td>';
 			}
@@ -540,7 +540,7 @@ if ($object->id > 0) {
 	if ($action == 'editref') {
 		$value = GETPOSTISSET('newref') ? GETPOST('newref', 'alphanohtml') : $object->ref;
 		print productplus_form_start($object->id, 'setref');
-		print '<input type="text" name="newref" class="minwidth200" maxlength="128" value="'.dolPrintHTMLForAttribute($value).'" autofocus spellcheck="false">';
+		print '<input type="text" name="newref" class="minwidth200" maxlength="128" value="'.dol_escape_htmltag($value).'" autofocus spellcheck="false">';
 		print productplus_form_end();
 	} else {
 		print dolPrintHTML($object->ref);
@@ -552,7 +552,7 @@ if ($object->id > 0) {
 	if ($action == 'editlabel') {
 		$value = GETPOSTISSET('label') ? GETPOST('label', 'alphanohtml') : $object->label;
 		print productplus_form_start($object->id, 'setlabel');
-		print '<input type="text" name="label" class="minwidth300 widthcentpercentminusx" maxlength="255" value="'.dolPrintHTMLForAttribute($value).'" autofocus>';
+		print '<input type="text" name="label" class="minwidth300 widthcentpercentminusx" maxlength="255" value="'.dol_escape_htmltag($value).'" autofocus>';
 		print productplus_form_end();
 	} else {
 		print dolPrintHTML($object->label);
@@ -570,7 +570,7 @@ if ($object->id > 0) {
 				$fk_barcode_type = getDolGlobalInt('PRODUIT_DEFAULT_BARCODE_TYPE');
 			}
 			print productplus_form_start($object->id, 'setbarcode');
-			print '<input type="text" name="barcode" class="minwidth200" maxlength="180" value="'.dolPrintHTMLForAttribute((string) $value).'" autofocus spellcheck="false"> ';
+			print '<input type="text" name="barcode" class="minwidth200" maxlength="180" value="'.dol_escape_htmltag((string) $value).'" autofocus spellcheck="false"> ';
 			print $formbarcode->selectBarcodeType($fk_barcode_type, 'fk_barcode_type', 1);
 			print productplus_form_end();
 		} else {
@@ -659,7 +659,7 @@ if ($object->id > 0) {
 			$base = GETPOSTISSET('price_base_type') ? GETPOST('price_base_type', 'aZ09') : $pricebase;
 			$vatselected = GETPOSTISSET('tva_tx') ? GETPOST('tva_tx', 'alpha') : ($lvl == 0 && $object->default_vat_code ? $object->tva_tx.' ('.$object->default_vat_code.')' : $vattx);
 			print productplus_form_start($object->id, 'setprice', array('level' => $lvl));
-			print '<input type="text" name="price" class="width100 right" value="'.dolPrintHTMLForAttribute((string) $value).'" autofocus> ';
+			print '<input type="text" name="price" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus> ';
 			print $form->selectPriceBaseType($base, 'price_base_type');
 			print ' '.$langs->trans('VAT').' '.$form->load_tva('tva_tx', $vatselected, $mysoc, null, $object->id, $object->tva_npr, $object->type, false, 1);
 			print '<br>'.productplus_form_end();
@@ -680,7 +680,7 @@ if ($object->id > 0) {
 	if ($action == 'editcostprice') {
 		$value = GETPOSTISSET('cost_price') ? GETPOST('cost_price', 'alpha') : ($object->cost_price !== null && $object->cost_price !== '' ? price($object->cost_price) : '');
 		print productplus_form_start($object->id, 'setcostprice');
-		print '<input type="text" name="cost_price" class="width100 right" value="'.dolPrintHTMLForAttribute((string) $value).'" autofocus> '.$langs->trans('HT');
+		print '<input type="text" name="cost_price" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus> '.$langs->trans('HT');
 		print productplus_form_end();
 	} else {
 		print ($object->cost_price !== null && $object->cost_price !== '' ? '<span class="amount">'.price($object->cost_price, 0, $langs, 0, -1, -1, $conf->currency).'</span> '.$langs->trans('HT') : '');
@@ -720,14 +720,14 @@ if ($object->id > 0) {
 
 			print '<tr class="oddeven">';
 			print '<td class="tdoverflowmax200">'.$supplierstatic->getNomUrl(1, 'supplier').'</td>';
-			print '<td class="tdoverflowmax150" title="'.dolPrintHTMLForAttribute($sp->ref_supplier).'">'.dolPrintHTML($sp->ref_supplier).'</td>';
+			print '<td class="tdoverflowmax150" title="'.dol_escape_htmltag($sp->ref_supplier).'">'.dolPrintHTML($sp->ref_supplier).'</td>';
 			print '<td class="right">'.productplus_qty($sp->fourn_qty).'</td>';
 			if ($editthis) {
 				$current = ($foreign ? $sp->fourn_multicurrency_unitprice : $sp->fourn_unitprice);
 				$value = GETPOSTISSET('unitprice') ? GETPOST('unitprice', 'alpha') : price($current);
 				print '<td class="right" colspan="2">';
 				print productplus_form_start($object->id, 'setsupplierprice', array('pfpid' => (int) $sp->product_fourn_price_id));
-				print '<input type="text" name="unitprice" class="width100 right" value="'.dolPrintHTMLForAttribute((string) $value).'" autofocus> ';
+				print '<input type="text" name="unitprice" class="width100 right" value="'.dol_escape_htmltag((string) $value).'" autofocus> ';
 				print dolPrintHTML($foreign ? $sp->fourn_multicurrency_code : $conf->currency);
 				print productplus_form_end();
 				print '</td>';
@@ -739,7 +739,7 @@ if ($object->id > 0) {
 				print '</td>';
 				print '<td class="right nowraponall">';
 				$url = $selfurl.'&action=editsupplierprice&pfpid='.((int) $sp->product_fourn_price_id).'&token='.newToken();
-				print '<a class="editfielda" href="'.dolPrintHTMLForAttribute($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
+				print '<a class="editfielda" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
 				print '</td>';
 			}
 			print '</tr>';
@@ -749,8 +749,8 @@ if ($object->id > 0) {
 			print '<tr class="oddeven"><td colspan="5">';
 			print productplus_form_start($object->id, 'addsupplierprice');
 			print '<div class="inline-block marginrightonly marginbottomonly">'.img_picto('', 'company', 'class="pictofixedwidth"').$form->select_company(GETPOSTINT('socid'), 'socid', '(fournisseur:=:1) AND (status:=:1)', $langs->transnoentitiesnoconv('Supplier'), 0, 0, array(), 0, 'minwidth200').'</div>';
-			print '<div class="inline-block marginrightonly marginbottomonly"><input type="text" name="ref_fourn" class="width150" maxlength="128" value="'.dolPrintHTMLForAttribute(GETPOST('ref_fourn', 'alphanohtml')).'" placeholder="'.dolPrintHTMLForAttribute($langs->trans('RefSupplier')).'"></div>';
-			print '<div class="inline-block marginrightonly marginbottomonly"><input type="text" name="unitprice" class="width100 right" value="'.dolPrintHTMLForAttribute(GETPOST('unitprice', 'alpha')).'" placeholder="'.dolPrintHTMLForAttribute($langs->trans('UnitPrice')).'"> '.dolPrintHTML($conf->currency).' '.$langs->trans('HT').'</div>';
+			print '<div class="inline-block marginrightonly marginbottomonly"><input type="text" name="ref_fourn" class="width150" maxlength="128" value="'.dol_escape_htmltag(GETPOST('ref_fourn', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('RefSupplier')).'"></div>';
+			print '<div class="inline-block marginrightonly marginbottomonly"><input type="text" name="unitprice" class="width100 right" value="'.dol_escape_htmltag(GETPOST('unitprice', 'alpha')).'" placeholder="'.dol_escape_htmltag($langs->trans('UnitPrice')).'"> '.dolPrintHTML($conf->currency).' '.$langs->trans('HT').'</div>';
 			print '<div class="opacitymedium small">'.$langs->trans('ProductPlusAddSupplierPriceHelp').'</div>';
 			print '<div class="paddingtop">'.productplus_form_end().'</div>';
 			print '</td></tr>';
@@ -760,7 +760,7 @@ if ($object->id > 0) {
 		print '</div>';
 
 		if ($action != 'createsupplierprice') {
-			print '<div class="right margintoponly"><a class="butAction smallpaddingimp" href="'.dolPrintHTMLForAttribute($selfurl.'&action=createsupplierprice&token='.newToken()).'">'.img_picto('', 'add', 'class="pictofixedwidth"').$langs->trans('ProductPlusAddSupplierPrice').'</a></div>';
+			print '<div class="right margintoponly"><a class="butAction smallpaddingimp" href="'.dol_escape_htmltag($selfurl.'&action=createsupplierprice&token='.newToken()).'">'.img_picto('', 'add', 'class="pictofixedwidth"').$langs->trans('ProductPlusAddSupplierPrice').'</a></div>';
 		}
 	}
 
@@ -824,8 +824,8 @@ if ($object->id > 0) {
 				$value = GETPOSTISSET('stockqty') ? GETPOST('stockqty', 'alpha') : productplus_qty($qty);
 				print '<td class="right" colspan="2">';
 				print productplus_form_start($object->id, 'setstock', array('whid' => (int) $wh->rowid));
-				print '<input type="text" name="stockqty" class="width75 right" value="'.dolPrintHTMLForAttribute((string) $value).'" autofocus title="'.dolPrintHTMLForAttribute($langs->trans('ProductPlusNewStock')).'"> ';
-				print '<input type="text" name="stocklabel" class="minwidth200" maxlength="255" value="'.dolPrintHTMLForAttribute(GETPOST('stocklabel', 'alphanohtml')).'" placeholder="'.dolPrintHTMLForAttribute($langs->trans('ProductPlusStockCorrectionLabel')).'">';
+				print '<input type="text" name="stockqty" class="width75 right" value="'.dol_escape_htmltag((string) $value).'" autofocus title="'.dol_escape_htmltag($langs->trans('ProductPlusNewStock')).'"> ';
+				print '<input type="text" name="stocklabel" class="minwidth200" maxlength="255" value="'.dol_escape_htmltag(GETPOST('stocklabel', 'alphanohtml')).'" placeholder="'.dol_escape_htmltag($langs->trans('ProductPlusStockCorrectionLabel')).'">';
 				print productplus_form_end();
 				print '</td>';
 			} else {
@@ -833,7 +833,7 @@ if ($object->id > 0) {
 				print '<td class="right nowraponall">';
 				if ($canedit) {
 					$url = $selfurl.'&action=editstock&whid='.((int) $wh->rowid).'&token='.newToken();
-					print '<a class="editfielda" href="'.dolPrintHTMLForAttribute($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
+					print '<a class="editfielda" href="'.dol_escape_htmltag($url).'">'.img_edit($langs->trans('Modify'), 1).'</a>';
 				}
 				print '</td>';
 			}
